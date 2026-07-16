@@ -48,3 +48,38 @@ def test_run_treats_409_as_already_submitted(monkeypatch, tmp_path):
     monkeypatch.setattr(mainmod.GatewayClient, "from_url", classmethod(lambda cls, *a, **k: _C()))
     code = mainmod.main(["submit", "svc", "ep"])
     assert code == 0
+
+
+def _fake_services(monkeypatch):
+    monkeypatch.setattr(mainmod, "load_config",
+                        lambda **kw: Config(gateway_url="https://gw", api_key="k", profile=None))
+
+    class _C:
+        def list_services(self): return ["svc-a"]
+        def close(self): pass
+    monkeypatch.setattr(mainmod.GatewayClient, "from_url", classmethod(lambda cls, *a, **k: _C()))
+
+
+def test_output_json_after_subcommand(monkeypatch, capsys):
+    _fake_services(monkeypatch)
+    assert mainmod.main(["services", "--output", "json"]) == 0
+    import json
+    assert json.loads(capsys.readouterr().out) == ["svc-a"]
+
+
+def test_output_json_before_subcommand(monkeypatch, capsys):
+    _fake_services(monkeypatch)
+    assert mainmod.main(["--output", "json", "services"]) == 0
+    import json
+    assert json.loads(capsys.readouterr().out) == ["svc-a"]
+
+
+def test_default_output_is_pretty(monkeypatch, capsys):
+    _fake_services(monkeypatch)
+    assert mainmod.main(["services"]) == 0
+    assert capsys.readouterr().out.strip() == "svc-a"
+
+
+def test_gateway_url_after_subcommand():
+    ns = mainmod.build_parser().parse_args(["services", "--gateway-url", "https://x"])
+    assert ns.gateway_url == "https://x"

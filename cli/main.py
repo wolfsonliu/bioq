@@ -27,21 +27,37 @@ _NO_CLIENT = {
 }
 
 
+# Global flags live on a shared parent parser applied to BOTH the top-level
+# parser and every subparser, so they work before OR after the subcommand
+# (like `uv`/`git`): `bioq --output json run ...` and `bioq run ... --output json`
+# are equivalent. `default=SUPPRESS` keeps the subparser copy from clobbering a
+# value already parsed at the top level; main() backfills the real defaults.
+_GLOBAL_DEFAULTS = (("gateway_url", None), ("profile", None), ("output", "pretty"))
+
+
+def _global_flags():
+    import argparse
+    g = argparse.ArgumentParser(add_help=False)
+    g.add_argument("--gateway-url", default=argparse.SUPPRESS)
+    g.add_argument("--profile", default=argparse.SUPPRESS)
+    g.add_argument("--output", choices=["pretty", "json"], default=argparse.SUPPRESS)
+    return g
+
+
 def build_parser():
     import argparse
-    p = argparse.ArgumentParser(prog="bioq", description="bioagent gateway CLI")
-    p.add_argument("--gateway-url")
-    p.add_argument("--profile")
-    p.add_argument("--output", choices=["pretty", "json"], default="pretty")
+    common = _global_flags()
+    p = argparse.ArgumentParser(prog="bioq", description="bioagent gateway CLI",
+                                parents=[common])
     sub = p.add_subparsers(dest="command", required=True)
 
-    sub.add_parser("services")
+    sub.add_parser("services", parents=[common])
 
-    d = sub.add_parser("describe")
+    d = sub.add_parser("describe", parents=[common])
     d.add_argument("svc")
 
     for name in ("run", "submit"):
-        sp = sub.add_parser(name)
+        sp = sub.add_parser(name, parents=[common])
         sp.add_argument("svc")
         sp.add_argument("endpoint")  # single token; may contain '/'
         sp.add_argument("--file", action="append", default=[], metavar="FIELD=PATH")
@@ -52,18 +68,18 @@ def build_parser():
             sp.add_argument("--wait", action="store_true")
             sp.add_argument("-o", "--out")
 
-    s = sub.add_parser("status")
+    s = sub.add_parser("status", parents=[common])
     s.add_argument("job_id")
-    dl = sub.add_parser("download")
+    dl = sub.add_parser("download", parents=[common])
     dl.add_argument("job_id")
     dl.add_argument("-o", "--out")
-    c = sub.add_parser("cancel")
+    c = sub.add_parser("cancel", parents=[common])
     c.add_argument("job_id")
 
-    lg = sub.add_parser("login")           # --gateway-url / --profile are global
+    lg = sub.add_parser("login", parents=[common])
     lg.add_argument("--api-key")           # login-only (not global → no history leak)
-    sub.add_parser("logout")               # uses global --profile
-    cf = sub.add_parser("config")
+    sub.add_parser("logout", parents=[common])
+    cf = sub.add_parser("config", parents=[common])
     cf.add_argument("config_action", nargs="?", choices=["show", "path"], default="show")
     return p
 
@@ -71,6 +87,10 @@ def build_parser():
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+    # Backfill global-flag defaults (SUPPRESS means an unset flag is absent).
+    for attr, default in _GLOBAL_DEFAULTS:
+        if not hasattr(args, attr):
+            setattr(args, attr, default)
 
     # No-client commands (login/logout/config) run without a gateway connection
     # and must NOT require an existing config (login creates it).
