@@ -71,3 +71,21 @@ def test_missing_gateway_url_raises_usage(tmp_path, monkeypatch):
     monkeypatch.delenv("BIOQ_GATEWAY_URL", raising=False)
     with pytest.raises(UsageError):
         load_config(profile=None, gateway_url=None, config_path=tmp_path / "nope.toml")
+
+
+def test_remove_api_key_drops_key_keeps_url_and_default(tmp_path, monkeypatch):
+    monkeypatch.delenv("BIOQ_API_KEY", raising=False)
+    from cli.config import write_profile, remove_api_key
+    cfg_file = tmp_path / "config.toml"
+    write_profile(cfg_file, profile="prod", gateway_url="https://gw", api_key="k")
+    remove_api_key(cfg_file, "prod")
+    cfg = load_config(profile=None, gateway_url=None, config_path=cfg_file)
+    assert cfg.gateway_url == "https://gw"   # url kept
+    assert cfg.api_key is None               # key gone
+    assert cfg.profile == "prod"             # default kept
+    assert (cfg_file.stat().st_mode & 0o777) == 0o600
+
+
+def test_remove_api_key_noop_when_missing(tmp_path):
+    from cli.config import remove_api_key
+    remove_api_key(tmp_path / "nope.toml", "prod")  # must not raise

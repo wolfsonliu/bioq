@@ -56,6 +56,21 @@ def _toml_escape(s: str) -> str:
     return s.replace("\\", "\\\\").replace('"', '\\"')
 
 
+def _write_data(path: Path, data: dict) -> None:
+    """Serialize our flat config schema to TOML at path (chmod 0600)."""
+    lines: list[str] = []
+    if data.get("default_profile"):
+        lines += [f'default_profile = "{_toml_escape(data["default_profile"])}"', ""]
+    for name, ent in (data.get("profiles") or {}).items():
+        lines.append(f"[profiles.{name}]")
+        for k, v in ent.items():
+            lines.append(f'{k} = "{_toml_escape(str(v))}"')
+        lines.append("")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+    path.chmod(0o600)
+
+
 def write_profile(path: Path, *, profile: str, gateway_url: str,
                   api_key: str | None = None, make_default: bool = True) -> None:
     """Persist a profile to config.toml (chmod 0600). Minimal TOML writer for our
@@ -70,27 +85,15 @@ def write_profile(path: Path, *, profile: str, gateway_url: str,
         entry["api_key"] = api_key
     if make_default or "default_profile" not in data:
         data["default_profile"] = profile
-
-    lines: list[str] = []
-    if data.get("default_profile"):
-        lines += [f'default_profile = "{_toml_escape(data["default_profile"])}"', ""]
-    for name, ent in data["profiles"].items():
-        lines.append(f"[profiles.{name}]")
-        for k, v in ent.items():
-            lines.append(f'{k} = "{_toml_escape(str(v))}"')
-        lines.append("")
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
-    path.chmod(0o600)
+    _write_data(path, data)
 
 
 def remove_api_key(path: Path, profile: str) -> None:
-    """`bioq logout`: drop a profile's api_key (keep gateway_url)."""
+    """`bioq logout`: drop a profile's api_key (keep gateway_url + default)."""
     if not path.exists():
         return
     data = tomllib.loads(path.read_text(encoding="utf-8"))
     prof = (data.get("profiles") or {}).get(profile)
     if prof and "api_key" in prof:
         del prof["api_key"]
-        write_profile(path, profile=profile, gateway_url=prof.get("gateway_url", ""),
-                      api_key=None, make_default=False)
+        _write_data(path, data)
