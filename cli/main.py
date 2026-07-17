@@ -55,6 +55,7 @@ def build_parser():
 
     d = sub.add_parser("describe", parents=[common])
     d.add_argument("svc")
+    d.add_argument("endpoint", nargs="?")  # optional: show just one endpoint
 
     for name in ("run", "submit"):
         sp = sub.add_parser(name, parents=[common])

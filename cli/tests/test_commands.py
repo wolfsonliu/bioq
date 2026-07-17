@@ -95,3 +95,51 @@ def test_run_normalizes_short_svc(tmp_path, monkeypatch):
     c = _Client()
     commands.cmd_submit(c, _args(svc="proteinmpnn", set=["n=1"]))
     assert c.ran[0] == "proteinmpnn-server"
+
+
+_DESCRIBE = {
+    "service": "proteinmpnn-server",
+    "manifest": {"endpoints": [
+        {"path": "/api/design", "summary": "sync", "request_fields": []},
+        {"path": "/api/tasks/design", "summary": "Sequence design", "request_fields": [
+            {"name": "pdb", "type": "file", "is_file": True, "required": False, "default": None},
+            {"name": "pdb_uri", "type": "string", "is_file": False, "required": False, "default": None},
+            {"name": "num_seq_per_target", "type": "integer", "is_file": False,
+             "required": False, "default": 8},
+        ]},
+    ]},
+    "openapi": {},
+}
+
+
+class _DescClient:
+    def describe(self, svc): return _DESCRIBE
+
+
+def test_describe_pretty_is_cli_shaped(capsys):
+    commands.cmd_describe(_DescClient(), _args(svc="proteinmpnn", output="pretty", endpoint=None))
+    out = capsys.readouterr().out
+    assert "--file pdb=<path>" in out
+    assert "--set num_seq_per_target=<integer>" in out
+    assert "pdb_uri" not in out                    # companion field hidden
+    assert "bioq run proteinmpnn design" in out    # copy-paste example
+    assert "/api/tasks" not in out                 # not a raw path dump
+
+
+def test_describe_json_is_raw(capsys):
+    import json
+    commands.cmd_describe(_DescClient(), _args(svc="proteinmpnn", output="json", endpoint=None))
+    assert json.loads(capsys.readouterr().out) == _DESCRIBE
+
+
+def test_describe_endpoint_filter(capsys):
+    commands.cmd_describe(_DescClient(),
+                          _args(svc="proteinmpnn", output="pretty", endpoint="design"))
+    out = capsys.readouterr().out
+    assert "design" in out and "--file pdb=<path>" in out
+
+
+def test_describe_unknown_endpoint(capsys):
+    commands.cmd_describe(_DescClient(),
+                          _args(svc="proteinmpnn", output="pretty", endpoint="nope"))
+    assert "unknown endpoint 'nope'" in capsys.readouterr().out

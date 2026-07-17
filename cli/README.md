@@ -77,6 +77,10 @@ bioq download "$JOB" -o ./out
 
 ## 用法要点
 
+- **`describe` 两种视图**：默认（pretty）是**面向 CLI 用法**的人读视图——每个 endpoint 列出
+  `--file` / `--set` 参数（含类型 / 默认值 / 说明）+ 一行可复制的 `bioq run ...` 示例；
+  `bioq describe <svc> <endpoint>` 只看某个端点。加 `--output json` 则返回网关原始 manifest+openapi
+  （给 LLM / 脚本用）。
 - **服务短名**：`bioq services` 显示去掉 `-server` 的名字；`run`/`describe` 两种写法都收
   （`proteinmpnn` 或 `proteinmpnn-server`），CLI 会补 `-server` 再发给网关。
 - **嵌套 endpoint**：`<endpoint>` 可含斜杠，如 `bioq run rfdiffusion generate/motif ...`、
