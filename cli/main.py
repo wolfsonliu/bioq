@@ -78,6 +78,7 @@ def build_parser():
 
     lg = sub.add_parser("login", parents=[common])
     lg.add_argument("--api-key")           # login-only (not global → no history leak)
+    lg.add_argument("--key-id")            # optional metadata (which key/principal)
     sub.add_parser("logout", parents=[common])
     cf = sub.add_parser("config", parents=[common])
     cf.add_argument("config_action", nargs="?", choices=["show", "path"], default="show")

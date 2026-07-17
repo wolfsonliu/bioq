@@ -89,3 +89,22 @@ def test_remove_api_key_drops_key_keeps_url_and_default(tmp_path, monkeypatch):
 def test_remove_api_key_noop_when_missing(tmp_path):
     from cli.config import remove_api_key
     remove_api_key(tmp_path / "nope.toml", "prod")  # must not raise
+
+
+def test_write_profile_stores_key_id(tmp_path, monkeypatch):
+    monkeypatch.delenv("BIOQ_API_KEY", raising=False)
+    from cli.config import write_profile
+    cfg_file = tmp_path / "config.toml"
+    write_profile(cfg_file, profile="prod", gateway_url="https://gw",
+                  api_key="k", key_id="gk_123")
+    cfg = load_config(profile="prod", gateway_url=None, config_path=cfg_file)
+    assert cfg.key_id == "gk_123" and cfg.api_key == "k"
+
+
+def test_key_id_absent_is_none(tmp_path, monkeypatch):
+    monkeypatch.delenv("BIOQ_API_KEY", raising=False)
+    from cli.config import write_profile
+    cfg_file = tmp_path / "config.toml"
+    write_profile(cfg_file, profile="prod", gateway_url="https://gw", api_key="k")
+    cfg = load_config(profile="prod", gateway_url=None, config_path=cfg_file)
+    assert cfg.key_id is None

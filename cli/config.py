@@ -28,6 +28,7 @@ class Config:
     gateway_url: str
     api_key: str | None
     profile: str | None
+    key_id: str | None = None  # metadata only (not sent; auth is by api_key secret)
 
 
 def load_config(*, profile: str | None, gateway_url: str | None,
@@ -49,7 +50,8 @@ def load_config(*, profile: str | None, gateway_url: str | None,
     api_key = os.environ.get("BIOQ_API_KEY") or prof.get("api_key")
     if path.exists() and prof.get("api_key") and (path.stat().st_mode & 0o077):
         print(f"warning: {path} is not 0600 (contains api_key)", file=sys.stderr)
-    return Config(gateway_url=url.rstrip("/"), api_key=api_key, profile=chosen)
+    return Config(gateway_url=url.rstrip("/"), api_key=api_key, profile=chosen,
+                  key_id=prof.get("key_id"))
 
 
 def _toml_escape(s: str) -> str:
@@ -72,9 +74,11 @@ def _write_data(path: Path, data: dict) -> None:
 
 
 def write_profile(path: Path, *, profile: str, gateway_url: str,
-                  api_key: str | None = None, make_default: bool = True) -> None:
+                  api_key: str | None = None, key_id: str | None = None,
+                  make_default: bool = True) -> None:
     """Persist a profile to config.toml (chmod 0600). Minimal TOML writer for our
-    flat schema (default_profile + profiles.<name>.{gateway_url,api_key})."""
+    flat schema (default_profile + profiles.<name>.{gateway_url,api_key,key_id}).
+    key_id is optional metadata (which key/principal); it is NOT sent on requests."""
     data: dict = {}
     if path.exists():
         data = tomllib.loads(path.read_text(encoding="utf-8"))
@@ -83,6 +87,8 @@ def write_profile(path: Path, *, profile: str, gateway_url: str,
     entry["gateway_url"] = gateway_url
     if api_key is not None:
         entry["api_key"] = api_key
+    if key_id is not None:
+        entry["key_id"] = key_id
     if make_default or "default_profile" not in data:
         data["default_profile"] = profile
     _write_data(path, data)

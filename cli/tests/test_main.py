@@ -83,3 +83,15 @@ def test_default_output_is_pretty(monkeypatch, capsys):
 def test_gateway_url_after_subcommand():
     ns = mainmod.build_parser().parse_args(["services", "--gateway-url", "https://x"])
     assert ns.gateway_url == "https://x"
+
+
+def test_login_stores_key_id(tmp_path, monkeypatch):
+    cfg = tmp_path / "config.toml"
+    monkeypatch.setattr("cli.config.default_config_path", lambda: cfg)
+    monkeypatch.delenv("BIOQ_API_KEY", raising=False)
+    code = mainmod.main(["--gateway-url", "https://gw", "login",
+                         "--api-key", "k", "--key-id", "gk_1"])
+    assert code == 0
+    from cli.config import load_config
+    loaded = load_config(profile=None, gateway_url=None, config_path=cfg)
+    assert loaded.key_id == "gk_1" and loaded.api_key == "k"
