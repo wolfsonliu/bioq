@@ -13,24 +13,37 @@ from .upload import upload_files
 
 POLL_INTERVAL_S = 10.0
 POLL_TIMEOUT_S = 3600.0
+_SUFFIX = "-server"
+
+
+def _canonical_svc(name: str) -> str:
+    """Accept a short name (proteinmpnn) or the canonical registry key
+    (proteinmpnn-server). All gateway services end in `-server`, so append it
+    when missing — keeps the gateway/docs canonical while letting users type
+    the shorter form shown by `bioq services`."""
+    return name if name.endswith(_SUFFIX) else name + _SUFFIX
 
 
 def cmd_services(client, args) -> int:
-    emit(client.list_services(), fmt=args.output)
+    # Display without the redundant `-server` suffix (accepted back on input).
+    names = [s[: -len(_SUFFIX)] if s.endswith(_SUFFIX) else s
+             for s in client.list_services()]
+    emit(names, fmt=args.output)
     return 0
 
 
 def cmd_describe(client, args) -> int:
-    emit(client.describe(args.svc), fmt=args.output)
+    emit(client.describe(_canonical_svc(args.svc)), fmt=args.output)
     return 0
 
 
 def _build_and_submit(client, args) -> str:
+    svc = _canonical_svc(args.svc)
     job_id = uuid.uuid4().hex[:20]
     file_uris = upload_files(client, job_id, args.file)
     body = build_body(sets=args.set, set_jsons=args.set_json, file_uris=file_uris)
-    client.run(args.svc, args.endpoint, job_id, body)
-    record_job(default_registry_path(), job_id=job_id, svc=args.svc, endpoint=args.endpoint)
+    client.run(svc, args.endpoint, job_id, body)
+    record_job(default_registry_path(), job_id=job_id, svc=svc, endpoint=args.endpoint)
     return job_id
 
 

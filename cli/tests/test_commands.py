@@ -74,3 +74,24 @@ def test_run_wait_completed_but_empty_zip_raises(tmp_path, monkeypatch):
     c.download = _empty
     with pytest.raises(NoOutputError):
         commands.cmd_run(c, _args(wait=True, out=str(tmp_path / "out")))
+
+
+def test_canonical_svc_appends_suffix():
+    assert commands._canonical_svc("proteinmpnn") == "proteinmpnn-server"
+    assert commands._canonical_svc("proteinmpnn-server") == "proteinmpnn-server"
+
+
+def test_services_strips_server_suffix(capsys):
+    import json
+
+    class _C:
+        def list_services(self): return ["proteinmpnn-server", "ensemble-server"]
+    commands.cmd_services(_C(), _args(output="json"))
+    assert json.loads(capsys.readouterr().out) == ["proteinmpnn", "ensemble"]
+
+
+def test_run_normalizes_short_svc(tmp_path, monkeypatch):
+    monkeypatch.setattr(commands, "default_registry_path", lambda: tmp_path / "j.json")
+    c = _Client()
+    commands.cmd_submit(c, _args(svc="proteinmpnn", set=["n=1"]))
+    assert c.ran[0] == "proteinmpnn-server"
