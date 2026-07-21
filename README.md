@@ -1,12 +1,11 @@
 # bioq
 
-`bioq` 是 bioagent 服务网关（gateway-server）的瘦客户端：一个 URL + 一个 API Key
+`bioq` 是 bioq-services 服务网关（gateway-server）的瘦客户端：一个 URL + 一个 API Key
 即可发现服务、上传输入、提交任务、轮询、下载结果。**不含任何 FC / OSS / JWT 代码**——平台复杂度全在网关。
 
 运行时依赖只有 `httpx`（Python 3.10 额外需要 `tomli`）；不拉 numpy / torch 等重依赖。
 
-> 本仓库由 `bioagent` monorepo 拆分独立而来（`git filter-repo --path cli/` + 包名 `cli` → `bioq`）。
-> 服务端 `gateway-server` 及各算法服务位于 **`bioagent-services`** 仓库；研究知识库位于 **`bioagent`** 仓库。
+> 服务端 `gateway-server` 及各算法服务位于 **`bioq-services`** 仓库。
 
 ## 安装
 
@@ -99,6 +98,30 @@ bioq download "$JOB" -o ./out
   Succeeded）。`--wait` 完成后会下载校验；若无 `results.zip`，报"完成但无产物"（退出码 6），
   不报成功——此时查下游 FC 日志。
 
+## 给 code agent 用（Skill）
+
+本仓库自带一个 Claude Code Skill，教 agent 端到端驱动 `bioq`（安装 → 认证 →
+`describe` → `run`/`submit`/`status`/`download` → 退出码判读，含"completed ≠ 有产物"
+陷阱）。文件位于 `.claude/skills/bioq/SKILL.md`。
+
+**Claude Code**：Skill 会在把本仓库作为工作目录时被自动发现，无需额外操作。
+要在别的项目 / 全局启用，把该目录拷贝或软链到 `.claude/skills/` 下：
+
+```bash
+# 全局启用（用户级）
+ln -s "$(pwd)/.claude/skills/bioq" ~/.claude/skills/bioq
+# 或按项目启用
+cp -r .claude/skills/bioq <其他项目>/.claude/skills/
+```
+
+之后在对话里说"用 bioq 跑一个服务 / 列出可用服务 / 下载任务结果"等即可触发。
+
+**Codex / 其他 agent**：`SKILL.md` 是自包含的纯 markdown，直接把它作为参考喂给
+agent（或在 `AGENTS.md` 里指向 `.claude/skills/bioq/SKILL.md`）即可。
+
+> 前提：agent 所在环境里 `bioq` 命令可用（见上文[安装](#安装)）。Skill 的 Step 0
+> 也会引导 agent 用 `uv run bioq` 或 `.venv/bin/bioq` 兜底。
+
 ## 退出码
 
 | 码 | 含义 |
@@ -123,9 +146,3 @@ BIOQ_E2E_GATEWAY_URL=https://<gateway> BIOQ_API_KEY=<KEY> \
 RUN_FC_TESTS=1 BIOQ_GATEWAY_URL=https://<gateway> BIOQ_API_KEY=<KEY> \
     uv run python -m pytest -m fc -v
 ```
-
-## 相关（位于 `bioagent` monorepo）
-
-- `engineering/guides/using-the-bioq-cli.md` —— 更详细的教程
-- `engineering/decisions/2026-07-09-unified-service-access-cli.md` —— gateway + CLI 架构（§2 CLI）
-- `engineering/decisions/2026-07-21-repo-split-and-bioq-rename.md` —— 本仓库拆分的设计与计划
