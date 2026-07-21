@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from cli import main as mainmod
+from bioq import main as mainmod
 
 _needs = pytest.mark.skipif(
     not (os.environ.get("BIOQ_GATEWAY_URL") and os.environ.get("BIOQ_API_KEY")

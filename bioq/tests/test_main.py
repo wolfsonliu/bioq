@@ -1,6 +1,6 @@
-from cli import main as mainmod
-from cli.config import Config
-from cli.errors import AuthError, ConflictError
+from bioq import main as mainmod
+from bioq.config import Config
+from bioq.errors import AuthError, ConflictError
 
 
 def test_parser_run_accepts_nested_endpoint():
@@ -13,12 +13,12 @@ def test_parser_run_accepts_nested_endpoint():
 
 def test_login_writes_config_0600(tmp_path, monkeypatch):
     cfg = tmp_path / "config.toml"
-    monkeypatch.setattr("cli.config.default_config_path", lambda: cfg)
+    monkeypatch.setattr("bioq.config.default_config_path", lambda: cfg)
     monkeypatch.delenv("BIOQ_API_KEY", raising=False)
     code = mainmod.main(["--gateway-url", "https://gw", "login", "--api-key", "k"])
     assert code == 0
     assert cfg.exists() and (cfg.stat().st_mode & 0o777) == 0o600
-    from cli.config import load_config
+    from bioq.config import load_config
     loaded = load_config(profile=None, gateway_url=None, config_path=cfg)
     assert loaded.gateway_url == "https://gw" and loaded.api_key == "k"
 
@@ -38,7 +38,7 @@ def test_main_maps_clierror_to_exit_code(monkeypatch):
 def test_run_treats_409_as_already_submitted(monkeypatch, tmp_path):
     monkeypatch.setattr(mainmod, "load_config",
                         lambda **kw: Config(gateway_url="https://gw", api_key="k", profile=None))
-    monkeypatch.setattr("cli.commands.default_registry_path", lambda: tmp_path / "j.json")
+    monkeypatch.setattr("bioq.commands.default_registry_path", lambda: tmp_path / "j.json")
 
     class _C:
         def presign(self, *a, **k): return {"exists": True, "url": None, "uri": "oss://x"}
@@ -87,11 +87,11 @@ def test_gateway_url_after_subcommand():
 
 def test_login_stores_key_id(tmp_path, monkeypatch):
     cfg = tmp_path / "config.toml"
-    monkeypatch.setattr("cli.config.default_config_path", lambda: cfg)
+    monkeypatch.setattr("bioq.config.default_config_path", lambda: cfg)
     monkeypatch.delenv("BIOQ_API_KEY", raising=False)
     code = mainmod.main(["--gateway-url", "https://gw", "login",
                          "--api-key", "k", "--key-id", "gk_1"])
     assert code == 0
-    from cli.config import load_config
+    from bioq.config import load_config
     loaded = load_config(profile=None, gateway_url=None, config_path=cfg)
     assert loaded.key_id == "gk_1" and loaded.api_key == "k"

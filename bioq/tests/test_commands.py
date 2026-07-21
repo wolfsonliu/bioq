@@ -4,8 +4,8 @@ import pytest
 from pathlib import Path
 from types import SimpleNamespace
 
-from cli import commands
-from cli.errors import JobFailedError, NoOutputError
+from bioq import commands
+from bioq.errors import JobFailedError, NoOutputError
 
 
 class _Client:

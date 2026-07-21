@@ -1,0 +1,35 @@
+[project]
+name = "bioq"
+version = "0.0.1"
+description = "bioq — thin REST client CLI for the bioagent service gateway"
+requires-python = ">=3.10"
+dependencies = [
+    "httpx>=0.28.1",
+]
+
+[project.optional-dependencies]
+dev = ["ruff>=0.4", "pytest>=8.0"]
+compat = ["tomli; python_version < '3.11'"]
+
+[project.scripts]
+bioq = "bioq.main:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[[tool.uv.index]]
+url = "https://repo.huaweicloud.com/repository/pypi/simple"
+default = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["bioq"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.pytest.ini_options]
+markers = [
+    "fc: live end-to-end tests against a deployed gateway (opt-in)",
+]

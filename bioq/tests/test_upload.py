@@ -1,8 +1,8 @@
 import hashlib
 import httpx
 import pytest
-from cli.upload import sha256_file, upload_files
-from cli.errors import UsageError
+from bioq.upload import sha256_file, upload_files
+from bioq.errors import UsageError
 
 
 class _FakeClient:

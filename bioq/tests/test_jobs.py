@@ -1,6 +1,6 @@
 import pytest
-from cli.jobs import poll, record_job, TERMINAL
-from cli.errors import GatewayError
+from bioq.jobs import poll, record_job, TERMINAL
+from bioq.errors import GatewayError
 
 
 class _Client:

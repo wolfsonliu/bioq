@@ -1,4 +1,4 @@
-from cli.errors import (  # noqa: F401
+from bioq.errors import (  # noqa: F401
     CLIError, UsageError, AuthError, NotFoundError, JobFailedError,
     NoOutputError, GatewayError, ConflictError,
     EXIT_OK, EXIT_USAGE, EXIT_AUTH, EXIT_NOT_FOUND, EXIT_JOB_FAILED,

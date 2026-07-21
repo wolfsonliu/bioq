@@ -1,5 +1,5 @@
 import json
-from cli.output import emit
+from bioq.output import emit
 
 
 def test_json_mode(capsys):

@@ -1,7 +1,7 @@
 import httpx
 import pytest
-from cli.client import GatewayClient
-from cli.errors import AuthError, NotFoundError, GatewayError, ConflictError
+from bioq.client import GatewayClient
+from bioq.errors import AuthError, NotFoundError, GatewayError, ConflictError
 
 
 def _client(handler):
