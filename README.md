@@ -1,9 +1,12 @@
-# bioq CLI
+# bioq
 
-`bioq` 是 [gateway-server](../services/gateway-server/) 的瘦客户端：一个 URL + 一个 API Key
+`bioq` 是 bioagent 服务网关（gateway-server）的瘦客户端：一个 URL + 一个 API Key
 即可发现服务、上传输入、提交任务、轮询、下载结果。**不含任何 FC / OSS / JWT 代码**——平台复杂度全在网关。
 
-运行时依赖只有 `httpx`（+ Python 3.10 需要 `tomli`）；不拉 numpy / torch 等重依赖。
+运行时依赖只有 `httpx`（Python 3.10 额外需要 `tomli`）；不拉 numpy / torch 等重依赖。
+
+> 本仓库由 `bioagent` monorepo 拆分独立而来（`git filter-repo --path cli/` + 包名 `cli` → `bioq`）。
+> 服务端 `gateway-server` 及各算法服务位于 **`bioagent-services`** 仓库；研究知识库位于 **`bioagent`** 仓库。
 
 ## 安装
 
@@ -13,7 +16,7 @@ uv sync
 uv run bioq --help                 # 或 source .venv/bin/activate && bioq --help
 
 # 可编辑安装到任意环境
-uv pip install -e '.[cli]'         # 或 pip install -e '.[cli]'
+uv pip install -e .                # Python 3.10 加 compat: uv pip install -e '.[compat]'
 bioq --help
 ```
 
@@ -109,8 +112,20 @@ bioq download "$JOB" -o ./out
 | 7 | 网关 / 派发错误（5xx / 502） |
 | 130 | 被 Ctrl-C 中断（不杀远端，可 `bioq status <job_id>` 重连） |
 
-## 相关
+## 测试
 
-- [使用 bioq CLI（指南）](../engineering/guides/using-the-bioq-cli.md) —— 更详细的教程
-- [统一服务访问层设计](../engineering/decisions/2026-07-09-unified-service-access-cli.md) —— gateway + CLI 架构（§2 CLI）
-- [gateway-server](../services/gateway-server/) —— 服务端
+```bash
+uv run python -m pytest -q               # 离线单测
+# 契约冒烟（需可达 gateway）：
+BIOQ_E2E_GATEWAY_URL=https://<gateway> BIOQ_API_KEY=<KEY> \
+    uv run python -m pytest bioq/tests/test_contract.py -v
+# 完整 live e2e（提交真实任务）：
+RUN_FC_TESTS=1 BIOQ_GATEWAY_URL=https://<gateway> BIOQ_API_KEY=<KEY> \
+    uv run python -m pytest -m fc -v
+```
+
+## 相关（位于 `bioagent` monorepo）
+
+- `engineering/guides/using-the-bioq-cli.md` —— 更详细的教程
+- `engineering/decisions/2026-07-09-unified-service-access-cli.md` —— gateway + CLI 架构（§2 CLI）
+- `engineering/decisions/2026-07-21-repo-split-and-bioq-rename.md` —— 本仓库拆分的设计与计划

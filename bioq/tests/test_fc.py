@@ -1,6 +1,6 @@
 """Opt-in end-to-end: bioq against a real gateway. Run with:
     RUN_FC_TESTS=1 BIOQ_GATEWAY_URL=... BIOQ_API_KEY=... \
-        uv run python -m pytest cli/tests/test_fc.py -v -m fc
+        uv run python -m pytest bioq/tests/test_fc.py -v -m fc
 """
 from __future__ import annotations
 
