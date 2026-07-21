@@ -174,7 +174,8 @@ def cmd_login(args) -> int:
     profile = args.profile or "default"
     path = default_config_path()
     write_profile(path, profile=profile, gateway_url=url, api_key=(key or None),
-                  key_id=(getattr(args, "key_id", None) or None))
+                  key_id=(getattr(args, "key_id", None) or None),
+                  account_id=(getattr(args, "account_id", None) or None))
     print(f"saved profile '{profile}' to {path} (mode 0600)")
     return 0
 

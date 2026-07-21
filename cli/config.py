@@ -28,7 +28,8 @@ class Config:
     gateway_url: str
     api_key: str | None
     profile: str | None
-    key_id: str | None = None  # metadata only (not sent; auth is by api_key secret)
+    key_id: str | None = None      # metadata only (not sent; auth is by api_key secret)
+    account_id: str | None = None  # metadata only (identity jobs are owned by; not sent)
 
 
 def load_config(*, profile: str | None, gateway_url: str | None,
@@ -51,7 +52,7 @@ def load_config(*, profile: str | None, gateway_url: str | None,
     if path.exists() and prof.get("api_key") and (path.stat().st_mode & 0o077):
         print(f"warning: {path} is not 0600 (contains api_key)", file=sys.stderr)
     return Config(gateway_url=url.rstrip("/"), api_key=api_key, profile=chosen,
-                  key_id=prof.get("key_id"))
+                  key_id=prof.get("key_id"), account_id=prof.get("account_id"))
 
 
 def _toml_escape(s: str) -> str:
@@ -75,10 +76,11 @@ def _write_data(path: Path, data: dict) -> None:
 
 def write_profile(path: Path, *, profile: str, gateway_url: str,
                   api_key: str | None = None, key_id: str | None = None,
-                  make_default: bool = True) -> None:
+                  account_id: str | None = None, make_default: bool = True) -> None:
     """Persist a profile to config.toml (chmod 0600). Minimal TOML writer for our
-    flat schema (default_profile + profiles.<name>.{gateway_url,api_key,key_id}).
-    key_id is optional metadata (which key/principal); it is NOT sent on requests."""
+    flat schema (default_profile + profiles.<name>.{gateway_url,api_key,key_id,account_id}).
+    key_id/account_id are optional metadata (which key, and the account jobs are
+    owned by); neither is sent on requests — auth is by the api_key secret."""
     data: dict = {}
     if path.exists():
         data = tomllib.loads(path.read_text(encoding="utf-8"))
@@ -89,6 +91,8 @@ def write_profile(path: Path, *, profile: str, gateway_url: str,
         entry["api_key"] = api_key
     if key_id is not None:
         entry["key_id"] = key_id
+    if account_id is not None:
+        entry["account_id"] = account_id
     if make_default or "default_profile" not in data:
         data["default_profile"] = profile
     _write_data(path, data)
