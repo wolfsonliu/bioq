@@ -1,11 +1,11 @@
 # bioq
 
-`bioq` 是 bioq-services 服务网关（gateway-server）的瘦客户端：一个 URL + 一个 API Key
+`bioq` 是 bioq-services 服务网关（gateway）的瘦客户端：一个 URL + 一个 API Key
 即可发现服务、上传输入、提交任务、轮询、下载结果。**不含任何 FC / OSS / JWT 代码**——平台复杂度全在网关。
 
 运行时依赖只有 `httpx`（Python 3.10 额外需要 `tomli`）；不拉 numpy / torch 等重依赖。
 
-> 服务端 `gateway-server` 及各算法服务位于 **`bioq-services`** 仓库。
+> 服务端 `gateway` 及各算法服务位于 **`bioq-services`** 仓库。
 
 ## 安装
 
@@ -100,24 +100,31 @@ bioq download "$JOB" -o ./out
 
 ## 给 code agent 用（Skill）
 
-本仓库自带一个 Claude Code Skill，教 agent 端到端驱动 `bioq`（安装 → 认证 →
-`describe` → `run`/`submit`/`status`/`download` → 退出码判读，含"completed ≠ 有产物"
-陷阱）。文件位于 `.claude/skills/bioq/SKILL.md`。
+本仓库自带一份**中立（agent 无关）的 skill**，教 agent 端到端驱动 `bioq`（安装 →
+认证 → `describe` → `run`/`submit`/`status`/`download` → 退出码判读，含
+"completed ≠ 有产物"陷阱）。它是**自包含的纯 markdown**，唯一副本放在中立位置：
 
-**Claude Code**：Skill 会在把本仓库作为工作目录时被自动发现，无需额外操作。
-要在别的项目 / 全局启用，把该目录拷贝或软链到 `.claude/skills/` 下：
-
-```bash
-# 全局启用（用户级）
-ln -s "$(pwd)/.claude/skills/bioq" ~/.claude/skills/bioq
-# 或按项目启用
-cp -r .claude/skills/bioq <其他项目>/.claude/skills/
+```
+skills/bioq/SKILL.md
 ```
 
-之后在对话里说"用 bioq 跑一个服务 / 列出可用服务 / 下载任务结果"等即可触发。
+各家 coding agent 用不同的发现机制，因此**用复制的方式**把这份 skill 装到对应位置即可
+（各 agent 只需自己那一份，互不影响）：
 
-**Codex / 其他 agent**：`SKILL.md` 是自包含的纯 markdown，直接把它作为参考喂给
-agent（或在 `AGENTS.md` 里指向 `.claude/skills/bioq/SKILL.md`）即可。
+| Agent | 装法（在你的项目根或用户目录执行） |
+|---|---|
+| **Claude Code** | `cp -r skills/bioq ~/.claude/skills/`（用户级）或 `cp -r skills/bioq <项目>/.claude/skills/`（项目级） |
+| **opencode** 等支持 Agent Skills 格式的 agent | 把整个 `skills/bioq/` 目录复制到该 agent 的 skills 目录（保留 `SKILL.md` 的 frontmatter） |
+| **Codex** | `cat skills/bioq/SKILL.md >> AGENTS.md`，或在 `AGENTS.md` 里加一行指向它 |
+| **Gemini CLI** | 同上，追加/指向 `GEMINI.md` |
+| **Cursor** | 复制成一条规则：`cp skills/bioq/SKILL.md <项目>/.cursor/rules/bioq.mdc`（或在规则里指向它） |
+
+要点：
+- SKILL.md 顶部的 YAML frontmatter（`name` + `description`）是 Agent Skills 格式所需；
+  支持该格式的 agent（Claude Code / opencode 等）直接复制目录即可被触发。
+- 只认单一指令文件的 agent（Codex `AGENTS.md`、Gemini `GEMINI.md`、Cursor 规则），把
+  正文并进去或指向 `skills/bioq/SKILL.md` 即可——内容自包含，无需改动。
+- 之后在对话里说"用 bioq 跑一个服务 / 列出可用服务 / 下载任务结果"等即可触发。
 
 > 前提：agent 所在环境里 `bioq` 命令可用（见上文[安装](#安装)）。Skill 的 Step 0
 > 也会引导 agent 用 `uv run bioq` 或 `.venv/bin/bioq` 兜底。

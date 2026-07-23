@@ -150,16 +150,21 @@ success.
 
 ## Installing this skill elsewhere
 
-This skill lives at `repos/bioq/.claude/skills/bioq/`. It is auto-discovered by
-Claude Code when the bioq repo is the working project. To use it from another
-project or user-wide, copy or symlink the directory:
+This skill is agent-neutral. Its single copy lives at `skills/bioq/SKILL.md` (not
+under any `.claude/` path). Install it by **copying** into whatever location your
+agent discovers — one copy per agent, no symlinks required:
 
 ```bash
-# user-wide (Claude Code)
-ln -s "$(pwd)/repos/bioq/.claude/skills/bioq" ~/.claude/skills/bioq
-# or per-project
-cp -r repos/bioq/.claude/skills/bioq <other-project>/.claude/skills/
+# Claude Code (and other Agent-Skills-format agents): copy the whole folder
+cp -r skills/bioq ~/.claude/skills/                 # user-wide
+cp -r skills/bioq <other-project>/.claude/skills/   # per-project
+
+# Single-instruction-file agents: append/point the body into their file
+cat skills/bioq/SKILL.md >> AGENTS.md               # Codex / opencode
+cat skills/bioq/SKILL.md >> GEMINI.md               # Gemini CLI
+cp skills/bioq/SKILL.md <project>/.cursor/rules/bioq.mdc   # Cursor
 ```
 
-For Codex or other agents, point them at this `SKILL.md` as reference — it is
-plain markdown and self-contained.
+The YAML frontmatter (`name` + `description`) is what Agent-Skills-format agents
+use to trigger it. For agents that read a single instruction file, the body is
+plain markdown and self-contained — copy it in or reference this file.
