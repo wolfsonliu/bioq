@@ -1,12 +1,13 @@
 """bioq config: profiles from ~/.config/bioq/config.toml.
 
-Precedence: CLI flag > env (BIOQ_GATEWAY_URL / BIOQ_API_KEY) > profile file.
-The API key may be persisted here (by `bioq login`) but env always overrides.
+Precedence: CLI flag > env (BIOQ_GATEWAY_URL) > profile file. Auth is JWT-only:
+a profile is either `oidc` (device-flow tokens cached separately, see tokens.py),
+`client_credentials` (machine/CI), or has no auth (`none` → rely on the gateway's
+VPC bypass for local/internal access).
 """
 from __future__ import annotations
 
 import os
-import sys
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -26,10 +27,11 @@ def default_config_path() -> Path:
 @dataclass
 class Config:
     gateway_url: str
-    api_key: str | None
     profile: str | None
-    key_id: str | None = None      # metadata only (not sent; auth is by api_key secret)
-    account_id: str | None = None  # metadata only (identity jobs are owned by; not sent)
+    auth_mode: str = "none"                    # none | oidc | client_credentials
+    oidc_issuer: str | None = None
+    oidc_client_id: str | None = None
+    oidc_client_secret: str | None = None      # client_credentials only (prefer env)
 
 
 def load_config(*, profile: str | None, gateway_url: str | None,
@@ -48,11 +50,15 @@ def load_config(*, profile: str | None, gateway_url: str | None,
             "no gateway_url: run `bioq login`, pass --gateway-url, set "
             f"BIOQ_GATEWAY_URL, or add a profile to {path}"
         )
-    api_key = os.environ.get("BIOQ_API_KEY") or prof.get("api_key")
-    if path.exists() and prof.get("api_key") and (path.stat().st_mode & 0o077):
-        print(f"warning: {path} is not 0600 (contains api_key)", file=sys.stderr)
-    return Config(gateway_url=url.rstrip("/"), api_key=api_key, profile=chosen,
-                  key_id=prof.get("key_id"), account_id=prof.get("account_id"))
+    return Config(
+        gateway_url=url.rstrip("/"),
+        profile=chosen,
+        auth_mode=prof.get("auth_mode", "none"),
+        oidc_issuer=prof.get("oidc_issuer"),
+        oidc_client_id=prof.get("oidc_client_id"),
+        oidc_client_secret=(os.environ.get("BIOQ_OIDC_CLIENT_SECRET")
+                            or prof.get("oidc_client_secret")),
+    )
 
 
 def _toml_escape(s: str) -> str:
@@ -75,35 +81,26 @@ def _write_data(path: Path, data: dict) -> None:
 
 
 def write_profile(path: Path, *, profile: str, gateway_url: str,
-                  api_key: str | None = None, key_id: str | None = None,
-                  account_id: str | None = None, make_default: bool = True) -> None:
-    """Persist a profile to config.toml (chmod 0600). Minimal TOML writer for our
-    flat schema (default_profile + profiles.<name>.{gateway_url,api_key,key_id,account_id}).
-    key_id/account_id are optional metadata (which key, and the account jobs are
-    owned by); neither is sent on requests — auth is by the api_key secret."""
+                  auth_mode: str | None = None, oidc_issuer: str | None = None,
+                  oidc_client_id: str | None = None,
+                  oidc_client_secret: str | None = None,
+                  make_default: bool = True) -> None:
+    """Persist a profile to config.toml (chmod 0600). Only provided fields are
+    written. OIDC tokens are NOT stored here — they live in tokens.py's cache."""
     data: dict = {}
     if path.exists():
         data = tomllib.loads(path.read_text(encoding="utf-8"))
     profiles = data.setdefault("profiles", {})
     entry = profiles.setdefault(profile, {})
     entry["gateway_url"] = gateway_url
-    if api_key is not None:
-        entry["api_key"] = api_key
-    if key_id is not None:
-        entry["key_id"] = key_id
-    if account_id is not None:
-        entry["account_id"] = account_id
+    if auth_mode is not None:
+        entry["auth_mode"] = auth_mode
+    if oidc_issuer is not None:
+        entry["oidc_issuer"] = oidc_issuer
+    if oidc_client_id is not None:
+        entry["oidc_client_id"] = oidc_client_id
+    if oidc_client_secret is not None:
+        entry["oidc_client_secret"] = oidc_client_secret
     if make_default or "default_profile" not in data:
         data["default_profile"] = profile
     _write_data(path, data)
-
-
-def remove_api_key(path: Path, profile: str) -> None:
-    """`bioq logout`: drop a profile's api_key (keep gateway_url + default)."""
-    if not path.exists():
-        return
-    data = tomllib.loads(path.read_text(encoding="utf-8"))
-    prof = (data.get("profiles") or {}).get(profile)
-    if prof and "api_key" in prof:
-        del prof["api_key"]
-        _write_data(path, data)

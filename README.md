@@ -21,24 +21,32 @@ bioq --help
 
 ## 认证（首次使用）
 
-```bash
-# 交互式：提示 Gateway URL + 隐藏输入 API key
-bioq login
+鉴权统一走 **OIDC / JWT**，请求带 `Authorization: Bearer <access_token>`。
 
-# 非交互（flag）：
-bioq --gateway-url https://<gateway> login --api-key <KEY> --key-id <KEY_ID>
+```bash
+# 人类 / agent：OIDC device flow（浏览器登一次，token 缓存 + 过期自动刷新）
+bioq --gateway-url https://<gateway> login --oidc \
+     --issuer https://<idp>/realms/<realm> --client-id bioq-gateway
+
+# 机器 / CI：client-credentials（无人值守；secret 建议走 env）
+bioq --gateway-url https://<gateway> login --client-credentials \
+     --issuer https://<idp>/realms/<realm> --client-id <svc> --client-secret <secret>
+export BIOQ_OIDC_CLIENT_SECRET=<secret>   # 或存 profile
+
+# 本地 / 内网：无需登录——经网关的 VPC bypass（localhost / *-vpc）直接放行
+bioq --gateway-url http://127.0.0.1:9000 services
 ```
 
-写入 `~/.config/bioq/config.toml`（权限 `0600`）。`--key-id` 可选，仅作元数据展示——网关按
-**api_key（secret）** 鉴权（`X-API-Key`），key_id 不随请求发送。
+profile 写入 `~/.config/bioq/config.toml`（`0600`，含 `auth_mode`/`oidc_issuer`/`oidc_client_id`）；
+device-flow 的 access/refresh token 单独缓存在 `~/.config/bioq/tokens/<profile>.json`（`0600`）。
 
 **凭证优先级**：`gateway_url` = flag > `BIOQ_GATEWAY_URL` env > 配置文件；
-`api_key` = `BIOQ_API_KEY` env > 配置文件（env 覆盖 config，CI 友好）。
+`oidc_client_secret` = `BIOQ_OIDC_CLIENT_SECRET` env > 配置文件（CI 友好）。
 
 ```bash
-bioq config show     # 查看当前配置（api_key 打码，key_id 明文）
+bioq config show     # 查看配置（client_secret 打码）
 bioq config path     # 打印配置文件路径
-bioq logout          # 删除该 profile 的 api_key（保留 gateway_url）
+bioq logout          # 清除该 profile 的缓存 token
 ```
 
 多环境用 named profile：配置文件里写多个 `[profiles.<name>]`，用 `--profile <name>` 选择。
@@ -135,7 +143,7 @@ skills/bioq/SKILL.md
 |----|------|
 | 0 | 成功 |
 | 2 | 用法错误 |
-| 3 | 鉴权失败（401/403）——检查 `bioq config show` 的 api_key |
+| 3 | 鉴权失败（401/403）——重新 `bioq login`（token 过期/未登录）或检查 IdP 配置 |
 | 4 | 未找到（404，未知服务 / 任务） |
 | 5 | 任务失败（终态 failed/cancelled） |
 | 6 | 完成但无产物（见上文 `--wait` 判据） |

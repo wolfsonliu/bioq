@@ -1,4 +1,5 @@
 import pytest
+
 from bioq import oidc
 from bioq.errors import AuthError
 

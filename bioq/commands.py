@@ -167,24 +167,44 @@ def cmd_cancel(client, args) -> int:
 # --- no-client commands (config file only; never touch the gateway) ---
 
 def cmd_login(args) -> int:
-    from getpass import getpass
+    from . import oidc, tokens
     from .config import default_config_path, write_profile
-    url = args.gateway_url or input("Gateway URL: ").strip()
-    key = args.api_key or getpass("API key (hidden, empty to skip): ").strip()
     profile = args.profile or "default"
+    url = args.gateway_url or input("Gateway URL: ").strip()
+    issuer = args.issuer or input("OIDC issuer URL: ").strip()
+    client_id = args.client_id or input("OIDC client_id: ").strip()
     path = default_config_path()
-    write_profile(path, profile=profile, gateway_url=url, api_key=(key or None),
-                  key_id=(getattr(args, "key_id", None) or None),
-                  account_id=(getattr(args, "account_id", None) or None))
-    print(f"saved profile '{profile}' to {path} (mode 0600)")
+
+    if getattr(args, "client_credentials", False):
+        # Machine/CI: store the profile; the secret is read at request time
+        # (from the profile or BIOQ_OIDC_CLIENT_SECRET) and exchanged for a token.
+        write_profile(path, profile=profile, gateway_url=url,
+                      auth_mode="client_credentials", oidc_issuer=issuer,
+                      oidc_client_id=client_id,
+                      oidc_client_secret=(getattr(args, "client_secret", None) or None))
+        print(f"saved client_credentials profile '{profile}' to {path}")
+        return 0
+
+    meta = oidc.discover(issuer)
+    dev = oidc.start_device(meta["device_authorization_endpoint"], client_id)
+    print(f"\n  open: {dev.get('verification_uri_complete') or dev['verification_uri']}")
+    print(f"  code: {dev['user_code']}\n  waiting for authorization...")
+    tok = oidc.poll_token(meta["token_endpoint"], client_id, dev["device_code"],
+                          interval=int(dev.get("interval", 5)),
+                          expires_in=int(dev.get("expires_in", 600)))
+    tokens.save_tokens(profile, tok, token_endpoint=meta["token_endpoint"],
+                       client_id=client_id)
+    write_profile(path, profile=profile, gateway_url=url, auth_mode="oidc",
+                  oidc_issuer=issuer, oidc_client_id=client_id)
+    print(f"logged in via OIDC; profile '{profile}' saved to {path}")
     return 0
 
 
 def cmd_logout(args) -> int:
-    from .config import default_config_path, remove_api_key
+    from . import tokens
     profile = args.profile or "default"
-    remove_api_key(default_config_path(), profile)
-    print(f"removed api_key for profile '{profile}'")
+    tokens.clear_tokens(profile)
+    print(f"cleared cached tokens for profile '{profile}'")
     return 0
 
 
@@ -200,8 +220,8 @@ def cmd_config(args) -> int:
     data = tomllib.loads(path.read_text(encoding="utf-8"))
     for name, ent in (data.get("profiles") or {}).items():
         masked = dict(ent)
-        if masked.get("api_key"):
-            masked["api_key"] = masked["api_key"][:4] + "…"
+        if masked.get("oidc_client_secret"):
+            masked["oidc_client_secret"] = masked["oidc_client_secret"][:4] + "…"
         marker = " (default)" if data.get("default_profile") == name else ""
         print(f"[{name}]{marker}")
         for k, v in masked.items():

@@ -11,21 +11,35 @@ def test_parser_run_accepts_nested_endpoint():
     assert ns.set == ["n=1"]
 
 
-def test_login_writes_config_0600(tmp_path, monkeypatch):
+def test_login_oidc_device_flow(tmp_path, monkeypatch):
     cfg = tmp_path / "config.toml"
     monkeypatch.setattr("bioq.config.default_config_path", lambda: cfg)
-    monkeypatch.delenv("BIOQ_API_KEY", raising=False)
-    code = mainmod.main(["--gateway-url", "https://gw", "login", "--api-key", "k"])
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))  # token cache lands here
+    from bioq import oidc, tokens
+    monkeypatch.setattr(oidc, "discover", lambda issuer: {
+        "device_authorization_endpoint": "http://dev", "token_endpoint": "http://tok"})
+    monkeypatch.setattr(oidc, "start_device", lambda dep, cid: {
+        "device_code": "d", "user_code": "UC", "verification_uri": "http://v",
+        "interval": 1, "expires_in": 600})
+    monkeypatch.setattr(oidc, "poll_token", lambda *a, **k: {
+        "access_token": "AT", "refresh_token": "RT", "expires_in": 300})
+    saved = {}
+    monkeypatch.setattr(tokens, "save_tokens",
+                        lambda profile, tok, **kw: saved.update(profile=profile, tok=tok))
+    code = mainmod.main(["--gateway-url", "https://gw", "login", "--oidc",
+                         "--issuer", "https://idp", "--client-id", "cid"])
     assert code == 0
     assert cfg.exists() and (cfg.stat().st_mode & 0o777) == 0o600
     from bioq.config import load_config
     loaded = load_config(profile=None, gateway_url=None, config_path=cfg)
-    assert loaded.gateway_url == "https://gw" and loaded.api_key == "k"
+    assert loaded.gateway_url == "https://gw" and loaded.auth_mode == "oidc"
+    assert loaded.oidc_issuer == "https://idp" and loaded.oidc_client_id == "cid"
+    assert saved["tok"]["access_token"] == "AT"
 
 
 def test_main_maps_clierror_to_exit_code(monkeypatch):
     monkeypatch.setattr(mainmod, "load_config",
-                        lambda **kw: Config(gateway_url="https://gw", api_key="k", profile=None))
+                        lambda **kw: Config(gateway_url="https://gw", profile=None))
 
     class _C:
         def list_services(self): raise AuthError("no key")
@@ -37,7 +51,7 @@ def test_main_maps_clierror_to_exit_code(monkeypatch):
 
 def test_run_treats_409_as_already_submitted(monkeypatch, tmp_path):
     monkeypatch.setattr(mainmod, "load_config",
-                        lambda **kw: Config(gateway_url="https://gw", api_key="k", profile=None))
+                        lambda **kw: Config(gateway_url="https://gw", profile=None))
     monkeypatch.setattr("bioq.commands.default_registry_path", lambda: tmp_path / "j.json")
 
     class _C:
@@ -52,7 +66,7 @@ def test_run_treats_409_as_already_submitted(monkeypatch, tmp_path):
 
 def _fake_services(monkeypatch):
     monkeypatch.setattr(mainmod, "load_config",
-                        lambda **kw: Config(gateway_url="https://gw", api_key="k", profile=None))
+                        lambda **kw: Config(gateway_url="https://gw", profile=None))
 
     class _C:
         def list_services(self): return ["svc-a"]
@@ -85,13 +99,15 @@ def test_gateway_url_after_subcommand():
     assert ns.gateway_url == "https://x"
 
 
-def test_login_stores_key_id(tmp_path, monkeypatch):
+def test_login_client_credentials(tmp_path, monkeypatch):
     cfg = tmp_path / "config.toml"
     monkeypatch.setattr("bioq.config.default_config_path", lambda: cfg)
-    monkeypatch.delenv("BIOQ_API_KEY", raising=False)
-    code = mainmod.main(["--gateway-url", "https://gw", "login",
-                         "--api-key", "k", "--key-id", "gk_1"])
+    from bioq import oidc
+    monkeypatch.setattr(oidc, "discover", lambda issuer: {"token_endpoint": "http://tok"})
+    code = mainmod.main(["--gateway-url", "https://gw", "login", "--client-credentials",
+                         "--issuer", "https://idp", "--client-id", "cid",
+                         "--client-secret", "sec"])
     assert code == 0
     from bioq.config import load_config
     loaded = load_config(profile=None, gateway_url=None, config_path=cfg)
-    assert loaded.key_id == "gk_1" and loaded.api_key == "k"
+    assert loaded.auth_mode == "client_credentials" and loaded.oidc_client_id == "cid"

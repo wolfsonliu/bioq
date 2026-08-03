@@ -6,7 +6,7 @@ import sys
 from . import commands
 from .client import GatewayClient
 from .config import load_config
-from .errors import CLIError, ConflictError, EXIT_INTERRUPT, EXIT_OK, UsageError
+from .errors import EXIT_INTERRUPT, EXIT_OK, CLIError, ConflictError
 
 _COMMANDS = {
     "services": commands.cmd_services,
@@ -78,9 +78,13 @@ def build_parser():
     c.add_argument("job_id")
 
     lg = sub.add_parser("login", parents=[common])
-    lg.add_argument("--api-key")           # login-only (not global → no history leak)
-    lg.add_argument("--key-id")            # optional metadata (which key)
-    lg.add_argument("--account-id")        # optional metadata (account jobs are owned by)
+    lg.add_argument("--oidc", action="store_true",
+                    help="OIDC device flow (default; humans/agents)")
+    lg.add_argument("--client-credentials", dest="client_credentials",
+                    action="store_true", help="machine/CI: client_id + client_secret")
+    lg.add_argument("--issuer")            # OIDC issuer URL
+    lg.add_argument("--client-id", dest="client_id")
+    lg.add_argument("--client-secret", dest="client_secret")  # client_credentials only
     sub.add_parser("logout", parents=[common])
     cf = sub.add_parser("config", parents=[common])
     cf.add_argument("config_action", nargs="?", choices=["show", "path"], default="show")
@@ -104,13 +108,14 @@ def main(argv: list[str] | None = None) -> int:
             print(f"error: {exc.message}", file=sys.stderr)
             return exc.exit_code
 
+    from .auth import resolve_bearer
     try:
         cfg = load_config(profile=args.profile, gateway_url=args.gateway_url)
-    except UsageError as exc:
+        client = GatewayClient.from_url(cfg.gateway_url, resolve_bearer(cfg))
+    except CLIError as exc:   # UsageError (no gateway_url) or AuthError (not logged in)
         print(f"error: {exc.message}", file=sys.stderr)
         return exc.exit_code
 
-    client = GatewayClient.from_url(cfg.gateway_url, cfg.api_key)
     try:
         return _COMMANDS[args.command](client, args)
     except ConflictError:

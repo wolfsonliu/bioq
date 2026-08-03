@@ -1,7 +1,8 @@
 import httpx
 import pytest
+
 from bioq.client import GatewayClient
-from bioq.errors import AuthError, NotFoundError, GatewayError, ConflictError
+from bioq.errors import AuthError, ConflictError, GatewayError, NotFoundError
 
 
 def _client(handler, token="k"):
