@@ -32,17 +32,17 @@ def _raise_for_status(resp: httpx.Response) -> None:
 
 
 class GatewayClient:
-    def __init__(self, *, http: httpx.Client, api_key: str | None) -> None:
+    def __init__(self, *, http: httpx.Client, token: str | None) -> None:
         self._http = http
-        if api_key:
-            http.headers["X-API-Key"] = api_key
+        if token:
+            http.headers["Authorization"] = f"Bearer {token}"
 
     @classmethod
-    def from_url(cls, gateway_url: str, api_key: str | None,
+    def from_url(cls, gateway_url: str, token: str | None,
                  timeout: float = 60.0) -> "GatewayClient":
         http = httpx.Client(base_url=gateway_url, timeout=timeout,
                             follow_redirects=True)
-        return cls(http=http, api_key=api_key)
+        return cls(http=http, token=token)
 
     def close(self) -> None:
         self._http.close()

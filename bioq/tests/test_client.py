@@ -4,17 +4,25 @@ from bioq.client import GatewayClient
 from bioq.errors import AuthError, NotFoundError, GatewayError, ConflictError
 
 
-def _client(handler):
+def _client(handler, token="k"):
     transport = httpx.MockTransport(handler)
     http = httpx.Client(base_url="https://gw", transport=transport)
-    return GatewayClient(http=http, api_key="k")
+    return GatewayClient(http=http, token=token)
 
 
 def test_list_services():
     def handler(req):
-        assert req.headers["x-api-key"] == "k"
+        assert req.headers["authorization"] == "Bearer k"
+        assert "x-api-key" not in req.headers
         return httpx.Response(200, json={"services": ["a", "b"]})
     assert _client(handler).list_services() == ["a", "b"]
+
+
+def test_no_token_sends_no_auth_header():
+    def handler(req):
+        assert "authorization" not in req.headers
+        return httpx.Response(200, json={"services": []})
+    assert _client(handler, token=None).list_services() == []
 
 
 def test_run_returns_job():
