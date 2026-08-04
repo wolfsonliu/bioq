@@ -19,8 +19,10 @@ def discover(issuer: str) -> dict:
     return r.json()
 
 
+# NOTE: `groups` is delivered by a client protocol mapper, not a requested scope —
+# asking for a `groups` scope makes Keycloak reject the request (invalid_scope).
 def start_device(device_endpoint: str, client_id: str,
-                 scope: str = "openid profile groups offline_access") -> dict:
+                 scope: str = "openid profile offline_access") -> dict:
     r = httpx.post(device_endpoint, data={"client_id": client_id, "scope": scope},
                    timeout=15.0)
     if r.status_code >= 400:
@@ -50,7 +52,7 @@ def poll_token(token_endpoint: str, client_id: str, device_code: str,
 
 
 def client_credentials(token_endpoint: str, client_id: str, client_secret: str,
-                       scope: str = "openid groups") -> dict:
+                       scope: str = "openid") -> dict:
     r = httpx.post(token_endpoint, timeout=15.0, data={
         "grant_type": "client_credentials", "client_id": client_id,
         "client_secret": client_secret, "scope": scope})
