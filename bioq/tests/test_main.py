@@ -55,7 +55,7 @@ def test_run_treats_409_as_already_submitted(monkeypatch, tmp_path):
     monkeypatch.setattr("bioq.commands.default_registry_path", lambda: tmp_path / "j.json")
 
     class _C:
-        def presign(self, *a, **k): return {"exists": True, "url": None, "uri": "oss://x"}
+        def prepare_upload(self, *a, **k): return {"exists": True, "put_url": None, "uri": "oss://x"}
         def run(self, *a, **k): raise ConflictError("exists")
         def get_job(self, job_id): return {"job_id": job_id, "status": "running"}
         def close(self): pass

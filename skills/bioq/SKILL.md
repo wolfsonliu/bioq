@@ -91,8 +91,8 @@ bioq run proteinmpnn design \
 ```
 
 Input flags:
-- `--file <field>=<path>` — CLI computes sha256 → presign (skips upload on cache
-  hit) → uploads to OSS → injects body `<field>_uri`. `<field>` must match the
+- `--file <field>=<path>` — CLI computes sha256 → prepare upload (skips upload on
+  cache hit) → uploads the bytes → injects body `<field>_uri`. `<field>` must match the
   downstream `<field>` shown by `describe` (its `_uri` companion). Repeat the
   same `<field>` for a list of files.
 - `--set k=v` — scalar; auto-infers `int`/`float`/`bool`, else string.

@@ -1,20 +1,28 @@
 import hashlib
+
 import httpx
 import pytest
-from bioq.upload import sha256_file, upload_files
+
 from bioq.errors import UsageError
+from bioq.upload import sha256_file, upload_files
 
 
 class _FakeClient:
-    def __init__(self, exists=False):
+    def __init__(self, exists=False, put_url="https://put", uri_scheme="oss://b"):
         self._exists = exists
-        self.presigned = []
+        self._put_url = put_url
+        self._uri_scheme = uri_scheme
+        self.prepared = []
+        self.put_files = []
 
-    def presign(self, job_id, filename, sha256):
-        self.presigned.append((job_id, filename, sha256))
-        return {"uri": f"oss://b/users/p/{job_id}/input/{filename}",
+    def prepare_upload(self, job_id, filename, sha256):
+        self.prepared.append((job_id, filename, sha256))
+        return {"uri": f"{self._uri_scheme}/users/p/{job_id}/input/{filename}",
                 "exists": self._exists,
-                "url": None if self._exists else "https://put"}
+                "put_url": None if self._exists else self._put_url}
+
+    def put_file(self, url, content):
+        self.put_files.append((url, content))
 
 
 def test_sha256_file(tmp_path):
@@ -33,6 +41,20 @@ def test_upload_maps_field_to_uri(tmp_path, monkeypatch):
     uris = upload_files(client, "j1", [f"input_pdb={f}"])
     assert uris == {"input_pdb_uri": f"oss://b/users/p/j1/input/{f.name}"}
     assert puts == ["https://put"]  # uploaded because exists=False
+
+
+def test_upload_relative_url_goes_through_client(tmp_path, monkeypatch):
+    # file storage backend: prepare_upload returns a gateway-relative URL, which
+    # must be PUT through the authed client session, not via bare httpx.put.
+    f = tmp_path / "c.pdb"
+    f.write_bytes(b"ATOM")
+    monkeypatch.setattr(httpx, "put",
+                        lambda *a, **k: pytest.fail("bare httpx.put used for relative URL"))
+    client = _FakeClient(exists=False, put_url="/v1/files/users/p/j1/input/c.pdb",
+                         uri_scheme="file:///data")
+    uris = upload_files(client, "j1", [f"model={f}"])
+    assert uris == {"model_uri": f"file:///data/users/p/j1/input/{f.name}"}
+    assert client.put_files == [("/v1/files/users/p/j1/input/c.pdb", b"ATOM")]
 
 
 def test_upload_skips_when_exists(tmp_path, monkeypatch):

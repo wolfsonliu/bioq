@@ -9,6 +9,9 @@ from .errors import AuthError, ConflictError, GatewayError, NotFoundError
 
 JOB_ID_HEADER = "X-Bioagent-Job-Id"
 
+# Uploads can be large / slow; give file PUTs a generous read+write budget.
+_PUT_TIMEOUT = httpx.Timeout(connect=10, read=300, write=300, pool=10)
+
 
 def _detail(resp: httpx.Response) -> str:
     try:
@@ -39,7 +42,7 @@ class GatewayClient:
 
     @classmethod
     def from_url(cls, gateway_url: str, token: str | None,
-                 timeout: float = 60.0) -> "GatewayClient":
+                 timeout: float = 60.0) -> GatewayClient:
         http = httpx.Client(base_url=gateway_url, timeout=timeout,
                             follow_redirects=True)
         return cls(http=http, token=token)
@@ -57,11 +60,23 @@ class GatewayClient:
         _raise_for_status(r)
         return r.json()
 
-    def presign(self, job_id: str, filename: str, sha256: str) -> dict:
-        r = self._http.post("/v1/uploads/presign",
+    def prepare_upload(self, job_id: str, filename: str, sha256: str) -> dict:
+        r = self._http.post("/v1/uploads/prepare",
                             json={"job_id": job_id, "filename": filename, "sha256": sha256})
         _raise_for_status(r)
         return r.json()
+
+    def put_file(self, url: str, content: bytes) -> None:
+        """PUT an upload through the gateway (file storage backend).
+
+        The file backend's prepare_upload returns a gateway-relative URL
+        (/v1/files/<key>); routing it through this session resolves it against
+        base_url and carries the Authorization header. OSS direct-to-object
+        URLs are absolute and must NOT get the gateway auth header, so those are
+        PUT bare in upload.py instead.
+        """
+        r = self._http.put(url, content=content, timeout=_PUT_TIMEOUT)
+        _raise_for_status(r)
 
     def run(self, svc: str, endpoint: str, job_id: str, body: dict) -> dict:
         r = self._http.post(f"/v1/run/{svc}/{endpoint}", json=body,
@@ -86,6 +101,5 @@ class GatewayClient:
                 r.read()
                 _raise_for_status(r)
             with open(dest, "wb") as fh:
-                for chunk in r.iter_bytes():
-                    fh.write(chunk)
+                fh.writelines(r.iter_bytes())
         return dest
