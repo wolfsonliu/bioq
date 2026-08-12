@@ -1,6 +1,7 @@
 import pytest
-from bioq.params import build_body
+
 from bioq.errors import UsageError
+from bioq.params import build_body
 
 
 def test_set_type_inference():

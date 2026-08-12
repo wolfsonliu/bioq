@@ -1,6 +1,7 @@
 import pytest
-from bioq.jobs import poll, record_job, TERMINAL
+
 from bioq.errors import GatewayError
+from bioq.jobs import TERMINAL, poll, record_job
 
 
 class _Client:

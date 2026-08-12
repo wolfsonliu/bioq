@@ -25,3 +25,19 @@ def test_is_expired():
     assert tokens.is_expired({"expires_at": time.time() - 1})
     assert tokens.is_expired({})  # missing expiry -> treated as expired
     assert not tokens.is_expired({"expires_at": time.time() + 100})
+
+
+def test_mark_expired(monkeypatch, tmp_path):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    tokens.save_tokens("default",
+                       {"access_token": "AT", "refresh_token": "RT", "expires_in": 300},
+                       token_endpoint="http://tok", client_id="cid")
+    t = tokens.load_tokens("default")
+    assert not tokens.is_expired(t)  # sanity: not expired yet
+    tokens.mark_expired("default")
+    t2 = tokens.load_tokens("default")
+    assert tokens.is_expired(t2)  # now expired
+    assert t2["access_token"] == "AT"  # other fields preserved
+    assert t2["refresh_token"] == "RT"
+    # no-op when file doesn't exist
+    tokens.mark_expired("nonexistent")  # should not raise

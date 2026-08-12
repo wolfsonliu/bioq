@@ -1,18 +1,19 @@
 """Subcommand handlers. Each returns an exit code (0) or raises a CLIError."""
 from __future__ import annotations
 
+import os
 import uuid
 import zipfile
 from pathlib import Path
 
 from .errors import JobFailedError, NoOutputError
-from .jobs import default_registry_path, poll, record_job
+from .jobs import TERMINAL, default_registry_path, poll, record_job
 from .output import emit
 from .params import build_body
 from .upload import upload_files
 
 POLL_INTERVAL_S = 10.0
-POLL_TIMEOUT_S = 3600.0
+POLL_TIMEOUT_S = 21600.0  # 6 hours — FC async-task hard limit is 24h
 _SUFFIX = "-server"
 
 
@@ -26,7 +27,7 @@ def _canonical_svc(name: str) -> str:
 
 def cmd_services(client, args) -> int:
     # Display without the redundant `-server` suffix (accepted back on input).
-    names = [s[: -len(_SUFFIX)] if s.endswith(_SUFFIX) else s
+    names = [s.removesuffix(_SUFFIX)
              for s in client.list_services()]
     emit(names, fmt=args.output)
     return 0
@@ -37,7 +38,7 @@ def cmd_describe(client, args) -> int:
     if args.output == "json":
         emit(info, fmt="json")   # raw payload — the machine/LLM view
         return 0
-    svc_short = args.svc[: -len(_SUFFIX)] if args.svc.endswith(_SUFFIX) else args.svc
+    svc_short = args.svc.removesuffix(_SUFFIX)
     _print_describe_cli(info, svc_short=svc_short, only=getattr(args, "endpoint", None))
     return 0
 
@@ -132,12 +133,27 @@ def _extract_download(client, job_id: str, out_dir: Path) -> int:
     return len(names)
 
 
+def _poll_timeout(args) -> float:
+    """Resolve poll timeout: CLI --timeout > BIOQ_POLL_TIMEOUT env > default."""
+    t = getattr(args, "timeout", None)
+    if t is not None:
+        if t <= 0:
+            from .errors import UsageError
+            raise UsageError("--timeout must be > 0")
+        return t
+    env = os.environ.get("BIOQ_POLL_TIMEOUT")
+    if env:
+        return float(env)
+    return POLL_TIMEOUT_S
+
+
 def cmd_run(client, args) -> int:
     job_id = _build_and_submit(client, args)
     if not args.wait:
         emit({"job_id": job_id, "status": "running"}, fmt=args.output)
         return 0
-    job = poll(client, job_id, interval=POLL_INTERVAL_S, timeout=POLL_TIMEOUT_S)
+    timeout = _poll_timeout(args)
+    job = poll(client, job_id, interval=POLL_INTERVAL_S, timeout=timeout)
     if job["status"] != "completed":
         raise JobFailedError(f"job {job_id} ended with status={job['status']}")
     out_dir = Path(args.out) if args.out else Path(f"./{job_id}")
@@ -148,7 +164,16 @@ def cmd_run(client, args) -> int:
 
 
 def cmd_status(client, args) -> int:
-    emit(client.get_job(args.job_id), fmt=args.output)
+    # Single-shot by default. If --timeout is given (or BIOQ_POLL_TIMEOUT env is
+    # set for this invocation), and the job isn't already in a terminal state,
+    # poll until it becomes terminal or the timeout expires.
+    explicit_timeout = (getattr(args, "timeout", None) is not None
+                        or os.environ.get("BIOQ_POLL_TIMEOUT"))
+    job = client.get_job(args.job_id)
+    if explicit_timeout and job.get("status") not in TERMINAL:
+        job = poll(client, args.job_id, interval=POLL_INTERVAL_S,
+                   timeout=_poll_timeout(args))
+    emit(job, fmt=args.output)
     return 0
 
 

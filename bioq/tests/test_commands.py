@@ -1,8 +1,9 @@
 import io
 import zipfile
-import pytest
 from pathlib import Path
 from types import SimpleNamespace
+
+import pytest
 
 from bioq import commands
 from bioq.errors import JobFailedError, NoOutputError
@@ -33,7 +34,7 @@ class _Client:
 def _args(**kw):
     base = dict(svc="proteinmpnn-server", endpoint="design", file=[], set=[],
                 set_json=[], wait=False, output="json", out=None, job_id="j1",
-                extract=True)
+                timeout=None, extract=True)
     base.update(kw)
     return SimpleNamespace(**base)
 
@@ -143,3 +144,63 @@ def test_describe_unknown_endpoint(capsys):
     commands.cmd_describe(_DescClient(),
                           _args(svc="proteinmpnn", output="pretty", endpoint="nope"))
     assert "unknown endpoint 'nope'" in capsys.readouterr().out
+
+
+# --- _poll_timeout precedence + validation ---
+
+def test_poll_timeout_defaults_to_module_constant(monkeypatch):
+    monkeypatch.delenv("BIOQ_POLL_TIMEOUT", raising=False)
+    assert commands._poll_timeout(_args()) == commands.POLL_TIMEOUT_S
+
+
+def test_poll_timeout_env_overrides_default(monkeypatch):
+    monkeypatch.setenv("BIOQ_POLL_TIMEOUT", "42")
+    assert commands._poll_timeout(_args()) == 42.0
+
+
+def test_poll_timeout_cli_beats_env(monkeypatch):
+    monkeypatch.setenv("BIOQ_POLL_TIMEOUT", "42")
+    assert commands._poll_timeout(_args(timeout=7.5)) == 7.5
+
+
+def test_poll_timeout_nonpositive_raises_usage_error():
+    from bioq.errors import UsageError
+    with pytest.raises(UsageError):
+        commands._poll_timeout(_args(timeout=0))
+    with pytest.raises(UsageError):
+        commands._poll_timeout(_args(timeout=-1))
+
+
+# --- cmd_status --timeout wiring ---
+
+def test_cmd_status_no_timeout_is_single_shot(tmp_path, monkeypatch):
+    monkeypatch.delenv("BIOQ_POLL_TIMEOUT", raising=False)
+    called_poll = []
+    monkeypatch.setattr(commands, "poll",
+                        lambda *a, **k: called_poll.append((a, k)) or {})
+    c = _Client(status="running")
+    commands.cmd_status(c, _args(job_id="j1"))
+    assert called_poll == []  # no polling when timeout unset
+
+
+def test_cmd_status_timeout_polls_when_not_terminal(monkeypatch):
+    monkeypatch.delenv("BIOQ_POLL_TIMEOUT", raising=False)
+    poll_calls = []
+
+    def fake_poll(client, job_id, *, interval, timeout):
+        poll_calls.append((job_id, timeout))
+        return {"job_id": job_id, "status": "completed"}
+
+    monkeypatch.setattr(commands, "poll", fake_poll)
+    c = _Client(status="running")
+    commands.cmd_status(c, _args(job_id="j1", timeout=30.0))
+    assert poll_calls == [("j1", 30.0)]
+
+
+def test_cmd_status_timeout_skips_poll_when_already_terminal(monkeypatch):
+    called_poll = []
+    monkeypatch.setattr(commands, "poll",
+                        lambda *a, **k: called_poll.append((a, k)) or {})
+    c = _Client(status="completed")
+    commands.cmd_status(c, _args(job_id="j1", timeout=30.0))
+    assert called_poll == []  # already terminal → don't poll

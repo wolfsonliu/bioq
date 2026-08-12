@@ -68,9 +68,14 @@ def build_parser():
         if name == "run":
             sp.add_argument("--wait", action="store_true")
             sp.add_argument("-o", "--out")
+            sp.add_argument("--timeout", type=float, default=None,
+                            help="max seconds to wait for job "
+                            "(default: BIOQ_POLL_TIMEOUT env or 21600s)")
 
     s = sub.add_parser("status", parents=[common])
     s.add_argument("job_id")
+    s.add_argument("--timeout", type=float, default=None,
+                   help="max seconds to wait (default: BIOQ_POLL_TIMEOUT env or 21600s)")
     dl = sub.add_parser("download", parents=[common])
     dl.add_argument("job_id")
     dl.add_argument("-o", "--out")
@@ -108,10 +113,9 @@ def main(argv: list[str] | None = None) -> int:
             print(f"error: {exc.message}", file=sys.stderr)
             return exc.exit_code
 
-    from .auth import resolve_bearer
     try:
         cfg = load_config(profile=args.profile, gateway_url=args.gateway_url)
-        client = GatewayClient.from_url(cfg.gateway_url, resolve_bearer(cfg))
+        client = GatewayClient.from_url(cfg.gateway_url, cfg)
     except CLIError as exc:   # UsageError (no gateway_url) or AuthError (not logged in)
         print(f"error: {exc.message}", file=sys.stderr)
         return exc.exit_code

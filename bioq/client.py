@@ -1,10 +1,16 @@
-"""Thin httpx wrapper over the gateway /v1 API. Maps HTTP status to CLIError."""
+"""Thin httpx wrapper over the gateway /v1 API. Maps HTTP status to CLIError.
+
+Auth is handled by _BioqAuth, which attaches a fresh Bearer token on every
+request and auto-refreshes on 401 (for oidc mode).
+"""
 from __future__ import annotations
 
 from pathlib import Path
 
 import httpx
 
+from . import tokens
+from .auth import resolve_bearer
 from .errors import AuthError, ConflictError, GatewayError, NotFoundError
 
 JOB_ID_HEADER = "X-Bioagent-Job-Id"
@@ -34,18 +40,43 @@ def _raise_for_status(resp: httpx.Response) -> None:
     raise GatewayError(msg)
 
 
-class GatewayClient:
-    def __init__(self, *, http: httpx.Client, token: str | None) -> None:
-        self._http = http
+class _BioqAuth(httpx.Auth):
+    """Attach a fresh Bearer per request; on 401 force a refresh and retry once.
+
+    ``resolve_bearer`` returns the cached token when not expired (μs cost) and
+    triggers ``oidc.refresh`` only on expiry — safe to call per request.
+    """
+
+    requires_response_body = False  # we only read status_code
+
+    def __init__(self, cfg) -> None:
+        self._cfg = cfg
+
+    def auth_flow(self, request: httpx.Request) -> httpx.Request:
+        token = resolve_bearer(self._cfg)
         if token:
-            http.headers["Authorization"] = f"Bearer {token}"
+            request.headers["Authorization"] = f"Bearer {token}"
+        response = yield request
+        if response.status_code == 401 and self._cfg.auth_mode == "oidc":
+            # Local cache said "valid" but gateway rejected — clock skew or
+            # server-side revocation. Force a refresh and retry once.
+            tokens.mark_expired(self._cfg.profile or "default")
+            token = resolve_bearer(self._cfg)
+            if token:
+                request.headers["Authorization"] = f"Bearer {token}"
+                yield request
+
+
+class GatewayClient:
+    def __init__(self, *, http: httpx.Client) -> None:
+        self._http = http
 
     @classmethod
-    def from_url(cls, gateway_url: str, token: str | None,
+    def from_url(cls, gateway_url: str, cfg,
                  timeout: float = 60.0) -> GatewayClient:
         http = httpx.Client(base_url=gateway_url, timeout=timeout,
-                            follow_redirects=True)
-        return cls(http=http, token=token)
+                            follow_redirects=True, auth=_BioqAuth(cfg))
+        return cls(http=http)
 
     def close(self) -> None:
         self._http.close()

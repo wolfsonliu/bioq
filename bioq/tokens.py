@@ -9,11 +9,10 @@ import json
 import time
 from pathlib import Path
 
-from .config import default_config_path
-
 
 def tokens_path(profile: str) -> Path:
-    return default_config_path().parent / "tokens" / f"{profile}.json"
+    from .config import get_tokens_dir
+    return Path(get_tokens_dir()) / f"{profile}.json"
 
 
 def save_tokens(profile: str, tok: dict, *, token_endpoint: str, client_id: str) -> None:
@@ -42,3 +41,20 @@ def clear_tokens(profile: str) -> None:
 
 def is_expired(tok: dict) -> bool:
     return time.time() >= tok.get("expires_at", 0)
+
+
+def mark_expired(profile: str) -> None:
+    """Force the next resolve_bearer to hit the refresh branch.
+
+    Sets expires_at to 0 so the token is treated as expired on the next
+    check. No-op if the token file is missing (e.g. auth_mode != 'oidc').
+    Other fields (access_token, refresh_token, etc.) are preserved so the
+    refresh branch can still use them.
+    """
+    p = tokens_path(profile)
+    if not p.exists():
+        return
+    tok = json.loads(p.read_text(encoding="utf-8"))
+    tok["expires_at"] = 0
+    p.write_text(json.dumps(tok), encoding="utf-8")
+    p.chmod(0o600)

@@ -32,6 +32,8 @@ class Config:
     oidc_issuer: str | None = None
     oidc_client_id: str | None = None
     oidc_client_secret: str | None = None      # client_credentials only (prefer env)
+    state_dir: str | None = None               # where bioq writes jobs.json (default: XDG_STATE_HOME)
+    tokens_dir: str | None = None              # where bioq writes OIDC tokens (default: XDG_CONFIG_HOME/bioq/tokens)
 
 
 def load_config(*, profile: str | None, gateway_url: str | None,
@@ -50,7 +52,7 @@ def load_config(*, profile: str | None, gateway_url: str | None,
             "no gateway_url: run `bioq login`, pass --gateway-url, set "
             f"BIOQ_GATEWAY_URL, or add a profile to {path}"
         )
-    return Config(
+    cfg = Config(
         gateway_url=url.rstrip("/"),
         profile=chosen,
         auth_mode=prof.get("auth_mode", "none"),
@@ -58,7 +60,37 @@ def load_config(*, profile: str | None, gateway_url: str | None,
         oidc_client_id=prof.get("oidc_client_id"),
         oidc_client_secret=(os.environ.get("BIOQ_OIDC_CLIENT_SECRET")
                             or prof.get("oidc_client_secret")),
+        state_dir=prof.get("state_dir"),
+        tokens_dir=prof.get("tokens_dir"),
     )
+    _set_current_config(cfg)
+    return cfg
+
+
+# ---------------------------------------------------------------------------
+# Module-level config accessor — lets other modules (jobs.py, tokens.py) pick
+# up the configured state_dir / tokens_dir without threading the Config object
+# through every function signature.
+# ---------------------------------------------------------------------------
+_current_config: Config | None = None
+
+
+def _set_current_config(cfg: Config) -> None:
+    global _current_config
+    _current_config = cfg
+
+
+def get_state_dir() -> str:
+    if _current_config and _current_config.state_dir:
+        return _current_config.state_dir
+    return os.environ.get("XDG_STATE_HOME") or str(Path.home() / ".local" / "state")
+
+
+def get_tokens_dir() -> str:
+    if _current_config and _current_config.tokens_dir:
+        return _current_config.tokens_dir
+    base = os.environ.get("XDG_CONFIG_HOME") or str(Path.home() / ".config")
+    return str(Path(base) / "bioq" / "tokens")
 
 
 def _toml_escape(s: str) -> str:

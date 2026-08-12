@@ -37,9 +37,8 @@ def poll(client, job_id: str, *, interval: float, timeout: float,
 
 
 def default_registry_path() -> Path:
-    import os
-    base = os.environ.get("XDG_STATE_HOME") or str(Path.home() / ".local" / "state")
-    return Path(base) / "bioq" / "jobs.json"
+    from .config import get_state_dir
+    return Path(get_state_dir()) / "bioq" / "jobs.json"
 
 
 def record_job(path: Path, *, job_id: str, svc: str, endpoint: str) -> None:

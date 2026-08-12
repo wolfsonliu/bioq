@@ -1,8 +1,19 @@
 from bioq.errors import (  # noqa: F401
-    CLIError, UsageError, AuthError, NotFoundError, JobFailedError,
-    NoOutputError, GatewayError, ConflictError,
-    EXIT_OK, EXIT_USAGE, EXIT_AUTH, EXIT_NOT_FOUND, EXIT_JOB_FAILED,
-    EXIT_NO_OUTPUT, EXIT_GATEWAY,
+    EXIT_AUTH,
+    EXIT_GATEWAY,
+    EXIT_JOB_FAILED,
+    EXIT_NO_OUTPUT,
+    EXIT_NOT_FOUND,
+    EXIT_OK,
+    EXIT_USAGE,
+    AuthError,
+    CLIError,
+    ConflictError,
+    GatewayError,
+    JobFailedError,
+    NoOutputError,
+    NotFoundError,
+    UsageError,
 )
 
 
