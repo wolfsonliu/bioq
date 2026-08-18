@@ -17,7 +17,7 @@ description: >
 # bioq — bioq computation services CLI
 
 `bioq` is a thin REST client for the bioq service gateway. One gateway URL +
-one API key lets you discover services, upload inputs, submit jobs, poll, and
+one set of OIDC credentials lets you discover services, upload inputs, submit jobs, poll, and
 download results. All platform complexity (FC / OSS / JWT) lives in the gateway —
 `bioq` only speaks HTTP and depends on `httpx`.
 
@@ -43,22 +43,40 @@ has `bioq` installed → `repos/bioq/.venv/bin/bioq` works.
 
 ## Step 1 — Authenticate (once per machine)
 
-Credentials resolve as: `gateway_url` = `--gateway-url` flag > `BIOQ_GATEWAY_URL`
-env > config file; `api_key` = `BIOQ_API_KEY` env > config file (env overrides
-config — CI friendly).
+Auth is JWT/OIDC: each request carries `Authorization: Bearer <access_token>`. Three
+`auth_mode`s: `oidc` (device flow — humans/agents), `client_credentials` (machine/CI),
+`none` (VPC bypass for local/internal).
 
 ```bash
-bioq login                                   # interactive: prompts URL + hidden key
-bioq --gateway-url https://<gw> login --api-key <KEY> --key-id <ID>   # non-interactive
-bioq config show                             # verify (api_key masked)
-bioq config path                             # ~/.config/bioq/config.toml (mode 0600)
-bioq logout                                  # drop api_key, keep gateway_url
+# human / agent — OIDC device flow (log in once; token cached + auto-refreshed)
+bioq --gateway-url https://<gw> login --oidc \
+     --issuer https://<idp>/realms/<realm> --client-id bioq-gateway
+
+# machine / CI — client-credentials (unattended; secret via env preferred)
+bioq --gateway-url https://<gw> login --client-credentials \
+     --issuer https://<idp>/realms/<realm> --client-id <svc> --client-secret <secret>
+export BIOQ_OIDC_CLIENT_SECRET=<secret>
+
+# local / internal — no login: the gateway's VPC bypass (localhost / *-vpc) admits you
+bioq --gateway-url http://127.0.0.1:9000 services
 ```
 
-`--key-id` is metadata only; the gateway authenticates by `api_key` (`X-API-Key`).
-Multi-env: define `[profiles.<name>]` in the config, select with `--profile <name>`.
+`bioq login` writes a profile to `~/.config/bioq/config.toml` (`0600`: `auth_mode` /
+`oidc_issuer` / `oidc_client_id`); device-flow access/refresh tokens cache separately
+in `~/.config/bioq/tokens/<profile>.json` (`0600`).
 
-**Never** print the raw API key, commit `config.toml`, or echo `BIOQ_API_KEY`.
+```bash
+bioq config show     # view config (client_secret masked)
+bioq config path     # ~/.config/bioq/config.toml (mode 0600)
+bioq logout          # clear this profile's cached OIDC tokens
+```
+
+Credentials resolve as: `gateway_url` = `--gateway-url` flag > `BIOQ_GATEWAY_URL`
+env > config file; `oidc_client_secret` = `BIOQ_OIDC_CLIENT_SECRET` env > config
+file (CI friendly). Multi-env: write several `[profiles.<name>]` sections and select
+with `--profile <name>`.
+
+**Never** print a raw secret, commit `config.toml` or token files, or echo tokens.
 
 ## Step 2 — Discover the service + endpoint
 

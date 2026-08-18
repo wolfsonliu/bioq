@@ -3,7 +3,11 @@
 so CI/offline runs skip it. Guards against silent drift between this repo and the
 gateway (which now lives in a separate repo).
 
-    BIOQ_E2E_GATEWAY_URL=https://<gateway> [BIOQ_API_KEY=<KEY>] \
+Auth comes from the logged-in profile (run `bioq login --oidc` or
+`bioq login --client-credentials` first) or `auth_mode = "none"` for a
+localhost / VPC-bypass gateway.
+
+    BIOQ_E2E_GATEWAY_URL=https://<gateway> \
         uv run python -m pytest bioq/tests/test_contract.py -v
 """
 from __future__ import annotations
@@ -13,6 +17,7 @@ import os
 import pytest
 
 from bioq.client import GatewayClient
+from bioq.config import load_config
 
 _URL = os.environ.get("BIOQ_E2E_GATEWAY_URL")
 
@@ -22,7 +27,8 @@ pytestmark = pytest.mark.skipif(
 
 
 def test_list_services_returns_list():
-    client = GatewayClient.from_url(_URL, os.environ.get("BIOQ_API_KEY"))
+    cfg = load_config(profile=None, gateway_url=_URL)
+    client = GatewayClient.from_url(cfg.gateway_url, cfg)
     try:
         services = client.list_services()
     finally:

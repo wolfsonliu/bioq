@@ -1,6 +1,10 @@
 """Opt-in end-to-end: bioq against a real gateway. Run with:
-    RUN_FC_TESTS=1 BIOQ_GATEWAY_URL=... BIOQ_API_KEY=... \
+    RUN_FC_TESTS=1 BIOQ_GATEWAY_URL=... \
         uv run python -m pytest bioq/tests/test_fc.py -v -m fc
+
+Auth: the tests drive the real CLI through main(), which uses the logged-in profile
+(run `bioq login --oidc` / `--client-credentials` first) or `auth_mode = "none"` for
+a localhost / VPC-bypass gateway.
 """
 from __future__ import annotations
 
@@ -12,9 +16,8 @@ import pytest
 from bioq import main as mainmod
 
 _needs = pytest.mark.skipif(
-    not (os.environ.get("BIOQ_GATEWAY_URL") and os.environ.get("BIOQ_API_KEY")
-         and os.environ.get("RUN_FC_TESTS")),
-    reason="set RUN_FC_TESTS=1 + BIOQ_GATEWAY_URL + BIOQ_API_KEY",
+    not (os.environ.get("BIOQ_GATEWAY_URL") and os.environ.get("RUN_FC_TESTS")),
+    reason="set RUN_FC_TESTS=1 + BIOQ_GATEWAY_URL",
 )
 _PDB = (Path(__file__).resolve().parents[2]
         / "services" / "proteinmpnn-server" / "tests" / "data" / "5L33.pdb")
