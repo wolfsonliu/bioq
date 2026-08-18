@@ -1,10 +1,13 @@
 """Opt-in end-to-end: bioq against a real gateway. Run with:
-    RUN_FC_TESTS=1 BIOQ_GATEWAY_URL=... \
+    RUN_FC_TESTS=1 BIOQ_GATEWAY_URL=... [BIOQ_FC_PDB=<pdb>] \
         uv run python -m pytest bioq/tests/test_fc.py -v -m fc
 
 Auth: the tests drive the real CLI through main(), which uses the logged-in profile
 (run `bioq login --oidc` / `--client-credentials` first) or `auth_mode = "none"` for
 a localhost / VPC-bypass gateway.
+
+The `run` test also needs a PDB input for proteinmpnn `design`; set BIOQ_FC_PDB to a
+PDB file (e.g. 5L33.pdb) to enable it.
 """
 from __future__ import annotations
 
@@ -19,8 +22,7 @@ _needs = pytest.mark.skipif(
     not (os.environ.get("BIOQ_GATEWAY_URL") and os.environ.get("RUN_FC_TESTS")),
     reason="set RUN_FC_TESTS=1 + BIOQ_GATEWAY_URL",
 )
-_PDB = (Path(__file__).resolve().parents[2]
-        / "services" / "proteinmpnn-server" / "tests" / "data" / "5L33.pdb")
+_PDB = os.environ.get("BIOQ_FC_PDB")
 
 
 @pytest.mark.fc
@@ -31,7 +33,10 @@ def test_services_lists_proteinmpnn():
 
 @pytest.mark.fc
 @_needs
-@pytest.mark.skipif(not _PDB.exists(), reason="fixture missing")
+@pytest.mark.skipif(
+    not (_PDB and Path(_PDB).is_file()),
+    reason="set BIOQ_FC_PDB to a PDB file to run the run test",
+)
 def test_run_proteinmpnn_design(tmp_path):
     code = mainmod.main([
         "run", "proteinmpnn-server", "design",

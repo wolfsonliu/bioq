@@ -86,7 +86,9 @@ def test_bioq_auth_oidc_401_triggers_mark_expired_and_retries(monkeypatch):
 
     # First resolve_bearer call → "OLD"; second (after 401) → "NEW".
     it = iter(["OLD", "NEW"])
-    resolve = lambda _c: next(it)
+
+    def resolve(_c):
+        return next(it)
 
     calls = []
 
