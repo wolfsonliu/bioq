@@ -58,7 +58,7 @@ bioq logout          # 清除该 profile 的缓存 token
 | 命令 | 作用 |
 |------|------|
 | `bioq services` | 列出所有服务（短名，去掉 `-server`） |
-| `bioq describe <svc> [<endpoint>]` | 服务端点 / 参数 / 文件输入字段 |
+| `bioq describe <svc> [<endpoint>] [--wait]` | 服务端点 / 参数 / 文件输入字段（`--wait` 容忍 FC 冷启动） |
 | `bioq run <svc> <endpoint> [...] --wait -o <dir>` | 上传输入 + 提交 + 轮询 + 下载解压 |
 | `bioq submit <svc> <endpoint> [...]` | 只提交，打印 `job_id` |
 | `bioq status <job_id>` | 查询任务状态 |
@@ -93,6 +93,9 @@ bioq download "$JOB" -o ./out
   `--file` / `--set` 参数（含类型 / 默认值 / 说明）+ 一行可复制的 `bioq run ...` 示例；
   `bioq describe <svc> <endpoint>` 只看某个端点。加 `--output json` 则返回网关原始 manifest+openapi
   （给 LLM / 脚本用）。
+- **冷启动 `describe`**：服务（如 `diffdock`）冷启动期间，网关可能返回空端点列表；此时
+  `describe` 打印提示而非旧的简短 banner。加 `--wait [--timeout <s>]` 等待端点出现
+  （默认超时 120s；`BIOQ_DESCRIBE_TIMEOUT` env 可覆盖）。`--output json` 仍是单次忠实抓取。
 - **服务短名**：`bioq services` 显示去掉 `-server` 的名字；`run`/`describe` 两种写法都收
   （`proteinmpnn` 或 `proteinmpnn-server`），CLI 会补 `-server` 再发给网关。
 - **嵌套 endpoint**：`<endpoint>` 可含斜杠，如 `bioq run rfdiffusion generate/motif ...`、

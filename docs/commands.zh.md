@@ -33,6 +33,11 @@
   `request_fields` 分成 **files**（`is_file`）与 **params**（非文件、排除每个文件的
   `<field>_uri` companion），渲染 `--file` / `--set` 参数表 + 一行可复制的
   `bioq run ...` 示例。`--output json` 返回原始 manifest+openapi 载荷。
+- `--wait [--timeout <s>]`（仅 pretty）：若 manifest 里没有可运行的 `/api/tasks/*`
+  端点（服务仍在冷启动），每 `DESCRIBE_WAIT_INTERVAL_S`（2s）重拉
+  `/v1/services/{svc}`，直到端点出现或超时。超时 = `--timeout` >
+  `BIOQ_DESCRIBE_TIMEOUT` env > `DESCRIBE_WAIT_TIMEOUT_S`（120s）。`--output json`
+  忽略 `--wait`（单次、忠实抓取）；端点列表为空时打印可操作的冷启动提示并以 0 退出。
 - `<endpoint>` 可含斜杠（嵌套）：`bioq run rfdiffusion generate/motif`。
 
 ## run / submit

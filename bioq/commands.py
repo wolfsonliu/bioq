@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+import time
 import uuid
 import zipfile
 from pathlib import Path
@@ -14,6 +15,8 @@ from .upload import upload_files
 
 POLL_INTERVAL_S = 10.0
 POLL_TIMEOUT_S = 21600.0  # 6 hours — FC async-task hard limit is 24h
+DESCRIBE_WAIT_INTERVAL_S = 2.0   # describe --wait refetch cadence
+DESCRIBE_WAIT_TIMEOUT_S = 120.0  # describe --wait give-up (FC cold start ~tens of s)
 _SUFFIX = "-server"
 
 
@@ -34,10 +37,15 @@ def cmd_services(client, args) -> int:
 
 
 def cmd_describe(client, args) -> int:
-    info = client.describe(_canonical_svc(args.svc))
+    svc = _canonical_svc(args.svc)
+    info = client.describe(svc)
     if args.output == "json":
         emit(info, fmt="json")   # raw payload — the machine/LLM view
         return 0
+    if args.wait:
+        # Cold-start tolerance: refetch until runnable endpoints appear. The JSON
+        # path above stays a single, faithful fetch (jq-stable) regardless of --wait.
+        info = _describe_wait(client, svc, timeout=_describe_timeout(args))
     svc_short = args.svc.removesuffix(_SUFFIX)
     _print_describe_cli(info, svc_short=svc_short, only=getattr(args, "endpoint", None))
     return 0
@@ -65,7 +73,10 @@ def _print_describe_cli(info: dict, *, svc_short: str, only: str | None = None) 
                   f"(try `bioq describe {svc_short}`)")
             return
     if not tasks:
-        print(f"{svc_short}: no runnable task endpoints found; try `--output json`")
+        print(f"{svc_short}: gateway returned no runnable task endpoints")
+        print("  (its endpoint list can be empty while the service cold-starts)")
+        print(f"  retry in a few seconds, or wait:  bioq describe {svc_short} --wait")
+        print("  raw payload, if any:  --output json")
         return
 
     print(svc_short)
@@ -101,6 +112,34 @@ def _print_describe_cli(info: dict, *, svc_short: str, only: str | None = None) 
         example.append("--wait -o ./out")
         print("    example:")
         print("      " + " ".join(example))
+
+
+def _describe_timeout(args) -> float:
+    """Resolve describe --wait deadline: --timeout > BIOQ_DESCRIBE_TIMEOUT env >
+    DESCRIBE_WAIT_TIMEOUT_S default."""
+    t = getattr(args, "timeout", None)
+    if t is not None:
+        if t <= 0:
+            from .errors import UsageError
+            raise UsageError("--timeout must be > 0")
+        return t
+    env = os.environ.get("BIOQ_DESCRIBE_TIMEOUT")
+    if env:
+        return float(env)
+    return DESCRIBE_WAIT_TIMEOUT_S
+
+
+def _describe_wait(client, svc: str, *, timeout: float,
+                   interval: float = DESCRIBE_WAIT_INTERVAL_S) -> dict:
+    """Refetch the service manifest until runnable `/api/tasks/*` endpoints appear
+    (cold-start tolerance). Returns the last payload and never raises on timeout —
+    the caller renders the empty-endpoints hint."""
+    deadline = time.time() + timeout
+    info = client.describe(svc)
+    while not _task_endpoints(info) and time.time() < deadline:
+        time.sleep(interval)
+        info = client.describe(svc)
+    return info
 
 
 def _build_and_submit(client, args) -> str:

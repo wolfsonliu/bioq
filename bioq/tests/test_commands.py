@@ -146,6 +146,60 @@ def test_describe_unknown_endpoint(capsys):
     assert "unknown endpoint 'nope'" in capsys.readouterr().out
 
 
+def test_describe_empty_manifest_prints_cold_start_hint(capsys):
+    class C:
+        def describe(self, svc):
+            return {"service": svc, "manifest": {}}
+    commands.cmd_describe(C(), _args(svc="proteinmpnn", output="pretty", endpoint=None))
+    out = capsys.readouterr().out
+    assert "no runnable task endpoints" in out
+    assert "cold-start" in out
+    assert "--wait" in out
+
+
+def test_describe_wait_polls_until_endpoints(capsys, monkeypatch):
+    monkeypatch.setattr(commands, "DESCRIBE_WAIT_INTERVAL_S", 0.0)
+    calls = []
+
+    class C:
+        def describe(self, svc):
+            calls.append(svc)
+            return _DESCRIBE if len(calls) > 1 else {"service": svc, "manifest": {}}
+
+    commands.cmd_describe(C(), _args(svc="proteinmpnn", output="pretty",
+                                     endpoint=None, wait=True, timeout=5.0))
+    assert len(calls) == 2
+    assert "--file pdb=<path>" in capsys.readouterr().out
+
+
+def test_describe_wait_timeout_returns_last_and_hints(capsys, monkeypatch):
+    monkeypatch.setattr(commands, "DESCRIBE_WAIT_INTERVAL_S", 0.0)
+
+    class C:
+        def describe(self, svc):
+            return {"service": svc, "manifest": {}}
+
+    code = commands.cmd_describe(C(), _args(svc="proteinmpnn", output="pretty",
+                                             endpoint=None, wait=True, timeout=0.05))
+    assert code == 0
+    out = capsys.readouterr().out
+    assert "no runnable task endpoints" in out
+    assert "--wait" in out
+
+
+def test_describe_json_ignores_wait_single_fetch(capsys):
+    calls = []
+
+    class C:
+        def describe(self, svc):
+            calls.append(svc)
+            return _DESCRIBE
+
+    commands.cmd_describe(C(), _args(svc="proteinmpnn", output="json",
+                                     endpoint=None, wait=True, timeout=5.0))
+    assert len(calls) == 1
+
+
 # --- _poll_timeout precedence + validation ---
 
 def test_poll_timeout_defaults_to_module_constant(monkeypatch):
@@ -169,6 +223,31 @@ def test_poll_timeout_nonpositive_raises_usage_error():
         commands._poll_timeout(_args(timeout=0))
     with pytest.raises(UsageError):
         commands._poll_timeout(_args(timeout=-1))
+
+
+# --- _describe_timeout precedence + validation ---
+
+def test_describe_timeout_defaults_to_module_constant(monkeypatch):
+    monkeypatch.delenv("BIOQ_DESCRIBE_TIMEOUT", raising=False)
+    assert commands._describe_timeout(_args()) == commands.DESCRIBE_WAIT_TIMEOUT_S
+
+
+def test_describe_timeout_env_overrides_default(monkeypatch):
+    monkeypatch.setenv("BIOQ_DESCRIBE_TIMEOUT", "42")
+    assert commands._describe_timeout(_args()) == 42.0
+
+
+def test_describe_timeout_cli_beats_env(monkeypatch):
+    monkeypatch.setenv("BIOQ_DESCRIBE_TIMEOUT", "42")
+    assert commands._describe_timeout(_args(timeout=7.5)) == 7.5
+
+
+def test_describe_timeout_nonpositive_raises_usage_error():
+    from bioq.errors import UsageError
+    with pytest.raises(UsageError):
+        commands._describe_timeout(_args(timeout=0))
+    with pytest.raises(UsageError):
+        commands._describe_timeout(_args(timeout=-1))
 
 
 # --- cmd_status --timeout wiring ---

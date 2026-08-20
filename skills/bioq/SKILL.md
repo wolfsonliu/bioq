@@ -85,6 +85,7 @@ bioq services                                # short names (‑server suffix str
 bioq describe proteinmpnn                     # all endpoints: --file/--set args + example
 bioq describe proteinmpnn design              # just one endpoint
 bioq --output json describe proteinmpnn       # raw manifest+openapi (for scripting/LLM)
+bioq describe diffdock --wait --timeout 120   # wait out a cold start (see note below)
 ```
 
 The default `describe` (pretty) is the **CLI-usage** view: per endpoint it lists
@@ -96,6 +97,12 @@ before running — do not guess.
   (`proteinmpnn-server`); both work.
 - Nested endpoints contain a slash: `rfdiffusion generate/motif`,
   `genie3 generate/unconditional`.
+- **Cold start**: while a service cold-starts, `describe` may show
+  `gateway returned no runnable task endpoints` (the gateway's endpoint list is
+  empty until the FC exposes `/openapi.json`). Add `--wait [--timeout <s>]` to
+  refetch every 2s until endpoints appear (default timeout 120s,
+  `BIOQ_DESCRIBE_TIMEOUT` env overrides). `--output json` ignores `--wait`; it stays
+  a single faithful fetch.
 
 ## Step 3 — Run a job
 
@@ -158,7 +165,7 @@ success.
 | command | purpose |
 |---------|---------|
 | `bioq services` | list services (short names) |
-| `bioq describe <svc> [<endpoint>]` | endpoints, params, file-input fields |
+| `bioq describe <svc> [<endpoint>] [--wait]` | endpoints, params, file-input fields (`--wait` tolerates cold starts) |
 | `bioq run <svc> <endpoint> [...] --wait -o <dir>` | upload + submit + poll + download |
 | `bioq submit <svc> <endpoint> [...]` | submit only; prints `job_id` |
 | `bioq status <job_id>` | query job status |

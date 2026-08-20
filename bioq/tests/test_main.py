@@ -11,6 +11,14 @@ def test_parser_run_accepts_nested_endpoint():
     assert ns.set == ["n=1"]
 
 
+def test_parser_describe_accepts_wait_and_timeout():
+    ns = mainmod.build_parser().parse_args(
+        ["describe", "diffdock", "--wait", "--timeout", "42"])
+    assert ns.svc == "diffdock"
+    assert ns.wait is True
+    assert ns.timeout == 42.0
+
+
 def test_login_oidc_device_flow(tmp_path, monkeypatch):
     cfg = tmp_path / "config.toml"
     monkeypatch.setattr("bioq.config.default_config_path", lambda: cfg)

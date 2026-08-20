@@ -62,7 +62,7 @@ sections in the config and select one with `--profile <name>`.
 | command | purpose |
 |------|------|
 | `bioq services` | list all services (short names, `-server` stripped) |
-| `bioq describe <svc> [<endpoint>]` | service endpoints / params / file-input fields |
+| `bioq describe <svc> [<endpoint>] [--wait]` | service endpoints / params / file-input fields (`--wait` tolerates FC cold starts) |
 | `bioq run <svc> <endpoint> [...] --wait -o <dir>` | upload inputs + submit + poll + download/extract |
 | `bioq submit <svc> <endpoint> [...]` | submit only; prints `job_id` |
 | `bioq status <job_id>` | query job status |
@@ -97,6 +97,11 @@ bioq download "$JOB" -o ./out
   endpoint it lists `--file` / `--set` params (type / default / description) + a
   copy-paste `bioq run ...` line; `bioq describe <svc> <endpoint>` shows a single
   endpoint. `--output json` returns the raw gateway manifest+openapi (for LLM/scripts).
+- **Cold-start `describe`**: while a service (e.g. `diffdock`) cold-starts, the gateway
+  may return an empty endpoint list; `describe` then prints a hint instead of the old
+  terse banner. Add `--wait [--timeout <s>]` to wait for the endpoints to appear
+  (default timeout 120s; `BIOQ_DESCRIBE_TIMEOUT` env overrides). `--output json` stays
+  a single, faithful fetch.
 - **Service short names**: `bioq services` shows names with `-server` stripped;
   `run`/`describe` accept both forms (`proteinmpnn` or `proteinmpnn-server`) and append
   `-server` before calling the gateway.

@@ -56,6 +56,11 @@ def build_parser():
     d = sub.add_parser("describe", parents=[common])
     d.add_argument("svc")
     d.add_argument("endpoint", nargs="?")  # optional: show just one endpoint
+    d.add_argument("--wait", action="store_true",
+                   help="wait for runnable endpoints to appear (cold-start tolerance)")
+    d.add_argument("--timeout", type=float, default=None,
+                   help="max seconds to wait with --wait "
+                   "(default: BIOQ_DESCRIBE_TIMEOUT env or 120s)")
 
     for name in ("run", "submit"):
         sp = sub.add_parser(name, parents=[common])

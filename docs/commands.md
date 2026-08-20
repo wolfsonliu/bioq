@@ -37,6 +37,13 @@ strip/append logic lives **only** in `commands._canonical_svc` — don't duplica
   excluding each file's `<field>_uri` companion), and renders `--file` / `--set`
   tables plus a copy-paste `bioq run ...` example. `--output json` returns the raw
   manifest+openapi payload.
+- `--wait [--timeout <s>]` (pretty only): if the manifest has no runnable
+  `/api/tasks/*` endpoints (a service still cold-starting), re-fetch
+  `/v1/services/{svc}` every `DESCRIBE_WAIT_INTERVAL_S` (2s) until endpoints appear
+  or the timeout is hit. Timeout = `--timeout` > `BIOQ_DESCRIBE_TIMEOUT` env >
+  `DESCRIBE_WAIT_TIMEOUT_S` (120s). `--output json` ignores `--wait` (single,
+  faithful fetch); an empty endpoint list prints an actionable cold-start hint and
+  still exits 0.
 - `<endpoint>` may contain a slash (nested): `bioq run rfdiffusion generate/motif`.
 
 ## run / submit
