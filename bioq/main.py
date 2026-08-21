@@ -127,10 +127,15 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         return _COMMANDS[args.command](client, args)
-    except ConflictError:
-        # job_id already exists => idempotent: treat submit/run as "already
-        # submitted" and exit 0 (the job is on the gateway; poll with `bioq status`).
-        return EXIT_OK
+    except ConflictError as exc:
+        if args.command in ("run", "submit"):
+            # job_id already exists => idempotent: treat submit/run as "already
+            # submitted" and exit 0 (the job is on the gateway; poll with
+            # `bioq status`).
+            return EXIT_OK
+        # Any other command's 409 is an ordinary gateway failure.
+        print(f"error: {exc.message}", file=sys.stderr)
+        return exc.exit_code
     except CLIError as exc:
         print(f"error: {exc.message}", file=sys.stderr)
         return exc.exit_code

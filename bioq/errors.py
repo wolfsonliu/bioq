@@ -47,6 +47,7 @@ class GatewayError(CLIError):
 
 
 class ConflictError(CLIError):
-    """409 from the gateway — job_id already exists. `run` treats this as
-    'already submitted' and proceeds to poll, so it is not fatal by itself."""
+    """409 from the gateway. For `run`/`submit` a 409 means the client-generated
+    job_id already exists and is treated as idempotent ("already submitted") by
+    `main.main`; for any other command it is an ordinary gateway error."""
     exit_code = EXIT_GATEWAY

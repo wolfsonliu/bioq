@@ -72,6 +72,19 @@ def test_run_treats_409_as_already_submitted(monkeypatch, tmp_path):
     assert code == 0
 
 
+def test_409_on_status_is_gateway_error_not_ok(monkeypatch):
+    monkeypatch.setattr(mainmod, "load_config",
+                        lambda **kw: Config(gateway_url="https://gw", profile=None))
+
+    class _C:
+        def get_job(self, job_id): raise ConflictError("conflict")
+        def close(self): pass
+    monkeypatch.setattr(mainmod.GatewayClient, "from_url",
+                        classmethod(lambda cls, *a, **k: _C()))
+    code = mainmod.main(["status", "j1"])
+    assert code == 7  # EXIT_GATEWAY — a 409 on `status` is NOT "already submitted"
+
+
 def _fake_services(monkeypatch):
     monkeypatch.setattr(mainmod, "load_config",
                         lambda **kw: Config(gateway_url="https://gw", profile=None))

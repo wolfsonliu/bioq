@@ -24,11 +24,12 @@ English | [中文](exit-codes.zh.md)
 
 ## Mapping rules
 
-- `main()` catches `ConflictError` **before** `CLIError` and returns `EXIT_OK` (0): a
-  409 means the job_id already exists = idempotent, treated as "already submitted"
-  (continue with `bioq status <job_id>`). Although `ConflictError.exit_code` is
-  `EXIT_GATEWAY`, it is only meaningful via this early, special-case handling in
-  `main()`, not as a normal failure.
+- `main()` catches `ConflictError` **before** `CLIError`. For **only** `run` and
+  `submit`, a 409 means the job_id already exists = idempotent, treated as "already
+  submitted" and returns `EXIT_OK` (0) (continue with `bioq status <job_id>`). For
+  every other command a 409 is an ordinary gateway error → `EXIT_GATEWAY` (7).
+  Although `ConflictError.exit_code` is `EXIT_GATEWAY`, it is only special-cased for
+  `run`/`submit` via this early handling in `main()`, not as a normal failure.
 - Ctrl-C does **not** cancel the remote job; reconnect with `bioq status <job_id>`.
 
 ## Adding a failure mode

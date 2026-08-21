@@ -22,10 +22,11 @@
 
 ## 映射规则
 
-- `main()` **先于** `CLIError` 捕获 `ConflictError` 并返回 `EXIT_OK`（0）：409 表示
-  job_id 已存在 = 幂等，按“已提交”处理（用 `bioq status <job_id>` 继续）。
-  虽然 `ConflictError.exit_code` 是 `EXIT_GATEWAY`，但它只通过 `main()` 里的这段
-  提前特殊处理才有意义，而不是作为普通失败。
+- `main()` **先于** `CLIError` 捕获 `ConflictError`。**仅**对 `run` 与 `submit`，
+  409 表示 job_id 已存在 = 幂等，按“已提交”处理并返回 `EXIT_OK`（0）（用
+  `bioq status <job_id>` 继续）。对于其他任何命令，409 都是普通网关错误 →
+  `EXIT_GATEWAY`（7）。虽然 `ConflictError.exit_code` 是 `EXIT_GATEWAY`，但它只通过
+  `main()` 里这段针对 `run`/`submit` 的提前处理才被特殊对待，而不是作为普通失败。
 - Ctrl-C **不会**取消远端任务；用 `bioq status <job_id>` 重连。
 
 ## 新增失败类型
