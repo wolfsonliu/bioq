@@ -10,9 +10,8 @@ from pathlib import Path
 
 import httpx
 
+from .client import PUT_TIMEOUT
 from .errors import UsageError
-
-_PUT_TIMEOUT = httpx.Timeout(connect=10, read=300, write=300, pool=10)
 
 
 def sha256_file(path: Path) -> str:
@@ -39,7 +38,7 @@ def upload_files(client, job_id: str, file_args: list[str]) -> dict:
             url = pre["put_url"]
             if url.startswith(("http://", "https://")):
                 # OSS direct-to-object presigned URL: PUT bare (no gateway auth).
-                resp = httpx.put(url, content=path.read_bytes(), timeout=_PUT_TIMEOUT)
+                resp = httpx.put(url, content=path.read_bytes(), timeout=PUT_TIMEOUT)
                 if resp.status_code not in (200, 201):
                     raise UsageError(f"upload failed for {path.name}: HTTP {resp.status_code}")
             else:

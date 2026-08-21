@@ -87,3 +87,9 @@ def test_bad_file_arg_raises(tmp_path):
 def test_missing_file_raises(tmp_path):
     with pytest.raises(UsageError):
         upload_files(_FakeClient(), "j1", [f"input_pdb={tmp_path/'ghost.pdb'}"])
+
+
+def test_put_timeout_is_single_sourced():
+    from bioq.client import PUT_TIMEOUT
+    from bioq.upload import PUT_TIMEOUT as upload_timeout
+    assert upload_timeout is PUT_TIMEOUT

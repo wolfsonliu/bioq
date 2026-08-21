@@ -16,7 +16,8 @@ from .errors import AuthError, ConflictError, GatewayError, NotFoundError
 JOB_ID_HEADER = "X-Bioagent-Job-Id"
 
 # Uploads can be large / slow; give file PUTs a generous read+write budget.
-_PUT_TIMEOUT = httpx.Timeout(connect=10, read=300, write=300, pool=10)
+# Single-sourced: upload.py imports this for presigned/relative PUTs.
+PUT_TIMEOUT = httpx.Timeout(connect=10, read=300, write=300, pool=10)
 
 
 def _detail(resp: httpx.Response) -> str:
@@ -106,7 +107,7 @@ class GatewayClient:
         URLs are absolute and must NOT get the gateway auth header, so those are
         PUT bare in upload.py instead.
         """
-        r = self._http.put(url, content=content, timeout=_PUT_TIMEOUT)
+        r = self._http.put(url, content=content, timeout=PUT_TIMEOUT)
         _raise_for_status(r)
 
     def run(self, svc: str, endpoint: str, job_id: str, body: dict) -> dict:
