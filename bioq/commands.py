@@ -20,6 +20,34 @@ DESCRIBE_WAIT_INTERVAL_S = 2.0   # describe --wait refetch cadence
 DESCRIBE_WAIT_TIMEOUT_S = 120.0  # describe --wait give-up (FC cold start ~tens of s)
 _SUFFIX = "-server"
 
+_JOB_ID_CHARS = frozenset(
+    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-")
+
+
+def _validate_job_id(job_id: str) -> str:
+    """job_id is normally uuid4().hex[:20]. Accept only that ASCII shape so a
+    user-supplied id can't build a `../`-escaping output dir."""
+    from .errors import UsageError
+    if not job_id or any(ch not in _JOB_ID_CHARS for ch in job_id):
+        raise UsageError(f"invalid job_id {job_id!r}")
+    return job_id
+
+
+def _safe_extract(z: zipfile.ZipFile, out_dir: Path) -> None:
+    """extractall with a zip-slip guard: every member must resolve inside out_dir."""
+    root = str(out_dir.resolve())
+    for member in z.infolist():
+        target = str((out_dir / member.filename).resolve())
+        try:
+            common = os.path.commonpath([root, target])
+        except ValueError:
+            raise NoOutputError(
+                f"refusing to extract {member.filename!r}: escapes output dir")
+        if common != root:
+            raise NoOutputError(
+                f"refusing to extract {member.filename!r}: escapes output dir")
+    z.extractall(out_dir)
+
 
 def _canonical_svc(name: str) -> str:
     """Accept a short name (proteinmpnn) or the canonical registry key
@@ -184,7 +212,7 @@ def _extract_download(client, job_id: str, out_dir: Path) -> int:
                 f"job {job_id} is completed but results.zip is empty "
                 f"(downstream may have failed at setup; check gateway/FC logs)"
             )
-        z.extractall(out_dir)
+        _safe_extract(z, out_dir)
     return len(names)
 
 
@@ -222,6 +250,7 @@ def cmd_run(client, args) -> int:
 
 
 def cmd_status(client, args) -> int:
+    _validate_job_id(args.job_id)
     # Single-shot by default. If --timeout is given (or BIOQ_POLL_TIMEOUT env is
     # set for this invocation), and the job isn't already in a terminal state,
     # poll until it becomes terminal or the timeout expires.
@@ -238,6 +267,7 @@ def cmd_status(client, args) -> int:
 
 
 def cmd_download(client, args) -> int:
+    _validate_job_id(args.job_id)
     out_dir = Path(args.out) if args.out else Path(f"./{args.job_id}")
     n = _extract_download(client, args.job_id, out_dir)
     record_status(history_path(), job_id=args.job_id, status="completed",
@@ -247,6 +277,7 @@ def cmd_download(client, args) -> int:
 
 
 def cmd_cancel(client, args) -> int:
+    _validate_job_id(args.job_id)
     emit(client.cancel(args.job_id), fmt=args.output)
     return 0
 

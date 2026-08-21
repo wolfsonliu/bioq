@@ -6,7 +6,7 @@ from types import SimpleNamespace
 import pytest
 
 from bioq import commands
-from bioq.errors import JobFailedError, NoOutputError
+from bioq.errors import JobFailedError, NoOutputError, UsageError
 
 
 class _Client:
@@ -325,3 +325,27 @@ def test_cmd_recent_pretty_and_json(tmp_path, monkeypatch, capsys):
     commands.cmd_recent(_args(output="json"))
     events = json.loads(capsys.readouterr().out)
     assert isinstance(events, list) and events[0]["type"] == "submit"
+
+
+def test_extract_download_rejects_path_traversal(tmp_path):
+    class C:
+        def download(self, job_id, dest):
+            buf = io.BytesIO()
+            with zipfile.ZipFile(buf, "w") as z:
+                z.writestr("../evil.txt", "x")
+            Path(dest).parent.mkdir(parents=True, exist_ok=True)
+            Path(dest).write_bytes(buf.getvalue())
+            return dest
+
+    with pytest.raises(NoOutputError):
+        commands._extract_download(C(), "j1", tmp_path / "out")
+
+
+def test_validate_job_id_accepts_hex_rejects_traversal():
+    assert commands._validate_job_id("abc123_-") == "abc123_-"
+    with pytest.raises(UsageError):
+        commands._validate_job_id("../etc")
+    with pytest.raises(UsageError):
+        commands._validate_job_id("a/b")
+    with pytest.raises(UsageError):
+        commands._validate_job_id("")
