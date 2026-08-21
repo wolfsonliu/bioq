@@ -1,7 +1,7 @@
 import pytest
 
 from bioq.errors import GatewayError
-from bioq.jobs import (TERMINAL, history_path, poll, read_history, record_job,
+from bioq.jobs import (TERMINAL, history_path, poll, read_history,
                        record_status, record_submit)
 
 
@@ -39,15 +39,6 @@ def test_poll_bails_after_max_transient():
 
 def test_terminal_set():
     assert TERMINAL == {"completed", "failed", "cancelled"}
-
-
-def test_record_job_appends(tmp_path):
-    reg = tmp_path / "jobs.json"
-    record_job(reg, job_id="j1", svc="s", endpoint="e")
-    record_job(reg, job_id="j2", svc="s", endpoint="e")
-    import json
-    rows = json.loads(reg.read_text())
-    assert [r["job_id"] for r in rows] == ["j1", "j2"]
 
 
 def test_submit_and_status_events_roundtrip(tmp_path):

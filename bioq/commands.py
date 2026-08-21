@@ -8,7 +8,7 @@ import zipfile
 from pathlib import Path
 
 from .errors import JobFailedError, NoOutputError
-from .jobs import TERMINAL, default_registry_path, poll, record_job
+from .jobs import TERMINAL, history_path, poll, record_status, record_submit
 from .output import emit
 from .params import build_body
 from .upload import upload_files
@@ -142,13 +142,28 @@ def _describe_wait(client, svc: str, *, timeout: float,
     return info
 
 
+def _file_names(file_args: list[str]) -> dict[str, str]:
+    """field -> basename for ``--file field=path`` args (for the local history log)."""
+    return {arg.split("=", 1)[0]: Path(arg.split("=", 1)[1]).name
+            for arg in file_args}
+
+
 def _build_and_submit(client, args) -> str:
     svc = _canonical_svc(args.svc)
     job_id = uuid.uuid4().hex[:20]
     file_uris = upload_files(client, job_id, args.file)
     body = build_body(sets=args.set, set_jsons=args.set_json, file_uris=file_uris)
     client.run(svc, args.endpoint, job_id, body)
-    record_job(default_registry_path(), job_id=job_id, svc=svc, endpoint=args.endpoint)
+    record_submit(
+        history_path(),
+        job_id=job_id,
+        svc=svc,
+        endpoint=args.endpoint,
+        profile=getattr(args, "profile", None),
+        gateway_url=getattr(args, "gateway_url", None),
+        params={k: v for k, v in body.items() if not k.endswith("_uri")},
+        files=_file_names(args.file),
+    )
     return job_id
 
 
@@ -194,9 +209,12 @@ def cmd_run(client, args) -> int:
     timeout = _poll_timeout(args)
     job = poll(client, job_id, interval=POLL_INTERVAL_S, timeout=timeout)
     if job["status"] != "completed":
+        record_status(history_path(), job_id=job_id, status=job["status"])
         raise JobFailedError(f"job {job_id} ended with status={job['status']}")
     out_dir = Path(args.out) if args.out else Path(f"./{job_id}")
     n = _extract_download(client, job_id, out_dir)
+    record_status(history_path(), job_id=job_id, status="completed",
+                  output_dir=str(out_dir), n_files=n)
     emit({"job_id": job_id, "status": "completed", "output_dir": str(out_dir),
           "files": n}, fmt=args.output)
     return 0
@@ -212,6 +230,8 @@ def cmd_status(client, args) -> int:
     if explicit_timeout and job.get("status") not in TERMINAL:
         job = poll(client, args.job_id, interval=POLL_INTERVAL_S,
                    timeout=_poll_timeout(args))
+    if job.get("status") in TERMINAL:
+        record_status(history_path(), job_id=args.job_id, status=job["status"])
     emit(job, fmt=args.output)
     return 0
 
@@ -219,6 +239,8 @@ def cmd_status(client, args) -> int:
 def cmd_download(client, args) -> int:
     out_dir = Path(args.out) if args.out else Path(f"./{args.job_id}")
     n = _extract_download(client, args.job_id, out_dir)
+    record_status(history_path(), job_id=args.job_id, status="completed",
+                  output_dir=str(out_dir), n_files=n)
     emit({"job_id": args.job_id, "output_dir": str(out_dir), "files": n}, fmt=args.output)
     return 0
 

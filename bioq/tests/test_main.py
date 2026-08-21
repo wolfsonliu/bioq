@@ -60,7 +60,7 @@ def test_main_maps_clierror_to_exit_code(monkeypatch):
 def test_run_treats_409_as_already_submitted(monkeypatch, tmp_path):
     monkeypatch.setattr(mainmod, "load_config",
                         lambda **kw: Config(gateway_url="https://gw", profile=None))
-    monkeypatch.setattr("bioq.commands.default_registry_path", lambda: tmp_path / "j.json")
+    monkeypatch.setattr("bioq.commands.history_path", lambda: tmp_path / "jobs.jsonl")
 
     class _C:
         def prepare_upload(self, *a, **k): return {"exists": True, "put_url": None, "uri": "oss://x"}

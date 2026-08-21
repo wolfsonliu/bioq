@@ -40,7 +40,7 @@ def _args(**kw):
 
 
 def test_submit_records_and_prints(tmp_path, monkeypatch):
-    monkeypatch.setattr(commands, "default_registry_path", lambda: tmp_path / "j.json")
+    monkeypatch.setattr(commands, "history_path", lambda: tmp_path / "jobs.jsonl")
     c = _Client()
     code = commands.cmd_submit(c, _args(set=["num_seq_per_target=2"]))
     assert code == 0
@@ -48,7 +48,7 @@ def test_submit_records_and_prints(tmp_path, monkeypatch):
 
 
 def test_run_wait_completed_downloads(tmp_path, monkeypatch):
-    monkeypatch.setattr(commands, "default_registry_path", lambda: tmp_path / "j.json")
+    monkeypatch.setattr(commands, "history_path", lambda: tmp_path / "jobs.jsonl")
     c = _Client(status="completed")
     code = commands.cmd_run(c, _args(wait=True, out=str(tmp_path / "out")))
     assert code == 0
@@ -56,14 +56,14 @@ def test_run_wait_completed_downloads(tmp_path, monkeypatch):
 
 
 def test_run_wait_failed_raises(tmp_path, monkeypatch):
-    monkeypatch.setattr(commands, "default_registry_path", lambda: tmp_path / "j.json")
+    monkeypatch.setattr(commands, "history_path", lambda: tmp_path / "jobs.jsonl")
     c = _Client(status="failed")
     with pytest.raises(JobFailedError):
         commands.cmd_run(c, _args(wait=True))
 
 
 def test_run_wait_completed_but_empty_zip_raises(tmp_path, monkeypatch):
-    monkeypatch.setattr(commands, "default_registry_path", lambda: tmp_path / "j.json")
+    monkeypatch.setattr(commands, "history_path", lambda: tmp_path / "jobs.jsonl")
     c = _Client(status="completed")
     def _empty(job_id, dest):
         buf = io.BytesIO()
@@ -92,7 +92,7 @@ def test_services_strips_server_suffix(capsys):
 
 
 def test_run_normalizes_short_svc(tmp_path, monkeypatch):
-    monkeypatch.setattr(commands, "default_registry_path", lambda: tmp_path / "j.json")
+    monkeypatch.setattr(commands, "history_path", lambda: tmp_path / "jobs.jsonl")
     c = _Client()
     commands.cmd_submit(c, _args(svc="proteinmpnn", set=["n=1"]))
     assert c.ran[0] == "proteinmpnn-server"
@@ -262,8 +262,9 @@ def test_cmd_status_no_timeout_is_single_shot(tmp_path, monkeypatch):
     assert called_poll == []  # no polling when timeout unset
 
 
-def test_cmd_status_timeout_polls_when_not_terminal(monkeypatch):
+def test_cmd_status_timeout_polls_when_not_terminal(tmp_path, monkeypatch):
     monkeypatch.delenv("BIOQ_POLL_TIMEOUT", raising=False)
+    monkeypatch.setattr(commands, "history_path", lambda: tmp_path / "jobs.jsonl")
     poll_calls = []
 
     def fake_poll(client, job_id, *, interval, timeout):
@@ -276,10 +277,23 @@ def test_cmd_status_timeout_polls_when_not_terminal(monkeypatch):
     assert poll_calls == [("j1", 30.0)]
 
 
-def test_cmd_status_timeout_skips_poll_when_already_terminal(monkeypatch):
+def test_cmd_status_timeout_skips_poll_when_already_terminal(tmp_path, monkeypatch):
+    monkeypatch.setattr(commands, "history_path", lambda: tmp_path / "jobs.jsonl")
     called_poll = []
     monkeypatch.setattr(commands, "poll",
                         lambda *a, **k: called_poll.append((a, k)) or {})
     c = _Client(status="completed")
     commands.cmd_status(c, _args(job_id="j1", timeout=30.0))
     assert called_poll == []  # already terminal → don't poll
+
+
+def test_submit_records_history_event(tmp_path, monkeypatch):
+    import json
+    p = tmp_path / "jobs.jsonl"
+    monkeypatch.setattr(commands, "history_path", lambda: p)
+    c = _Client()
+    commands.cmd_submit(c, _args(set=["num_seq_per_target=2"]))
+    events = [json.loads(ln) for ln in p.read_text().splitlines()]
+    assert events[0]["type"] == "submit"
+    assert events[0]["svc"] == "proteinmpnn-server"
+    assert events[0]["params"] == {"num_seq_per_target": 2}
