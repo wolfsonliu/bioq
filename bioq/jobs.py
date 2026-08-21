@@ -9,6 +9,8 @@ from .errors import CLIError, GatewayError
 
 TERMINAL = {"completed", "failed", "cancelled"}
 
+_HISTORY_MAX_EVENTS = 500
+
 
 def poll(client, job_id: str, *, interval: float, timeout: float,
          max_transient: int = 10, on_update=None) -> dict:
@@ -52,3 +54,77 @@ def record_job(path: Path, *, job_id: str, svc: str, endpoint: str) -> None:
     rows.append({"job_id": job_id, "svc": svc, "endpoint": endpoint,
                  "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())})
     path.write_text(json.dumps(rows[-100:], indent=2), encoding="utf-8")
+
+
+def _now_iso() -> str:
+    return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+
+
+def _truncate(value, limit: int = 200):
+    """Keep long values (esp. ``--set-json`` payloads) from bloating the history
+    file. Scalars (int/float/bool/None) are stored as-is; strings are elided;
+    lists/dicts are stored as a truncated repr."""
+    if isinstance(value, str):
+        return value if len(value) <= limit else value[:limit] + "…"
+    if isinstance(value, (list, dict)):
+        return repr(value)[:limit]
+    return value
+
+
+def _append_event(path: Path, event: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    lines = path.read_text(encoding="utf-8").splitlines() if path.exists() else []
+    lines.append(json.dumps(event, ensure_ascii=False))
+    lines = lines[-_HISTORY_MAX_EVENTS:]
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    path.chmod(0o600)
+
+
+def read_history(path: Path, *, limit: int = 20) -> list[dict]:
+    """Return the last ``limit`` events (newest last). Tolerates a missing file or
+    a malformed trailing line (a torn write)."""
+    if not path.exists():
+        return []
+    events = []
+    for raw in path.read_text(encoding="utf-8").splitlines():
+        raw = raw.strip()
+        if not raw:
+            continue
+        try:
+            events.append(json.loads(raw))
+        except json.JSONDecodeError:
+            continue
+    return events[-limit:] if limit > 0 else events
+
+
+def record_submit(path: Path, *, job_id: str, svc: str, endpoint: str,
+                  profile: str | None = None, gateway_url: str | None = None,
+                  params: dict | None = None, files: dict | None = None) -> None:
+    _append_event(path, {
+        "type": "submit",
+        "job_id": job_id,
+        "svc": svc,
+        "endpoint": endpoint,
+        "profile": profile,
+        "gateway_url": gateway_url,
+        "params": {k: _truncate(v) for k, v in (params or {}).items()},
+        "files": files or {},
+        "ts": _now_iso(),
+    })
+
+
+def record_status(path: Path, *, job_id: str, status: str,
+                  output_dir: str | None = None, n_files: int | None = None) -> None:
+    _append_event(path, {
+        "type": "status",
+        "job_id": job_id,
+        "status": status,
+        "output_dir": output_dir,
+        "files": n_files,
+        "ts": _now_iso(),
+    })
+
+
+def history_path() -> Path:
+    from .config import get_state_dir
+    return Path(get_state_dir()) / "bioq" / "jobs.jsonl"
