@@ -1,6 +1,6 @@
 [project]
 name = "bioq"
-version = "0.1.0"
+dynamic = ["version"]
 description = "bioq — thin REST client CLI for the bioagent service gateway"
 requires-python = ">=3.10"
 dependencies = [
@@ -21,6 +21,9 @@ build-backend = "hatchling.build"
 [[tool.uv.index]]
 url = "https://repo.huaweicloud.com/repository/pypi/simple"
 default = true
+
+[tool.hatch.version]
+path = "src/bioq/__init__.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/bioq"]
