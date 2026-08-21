@@ -78,6 +78,34 @@ def test_read_history_missing_file_returns_empty(tmp_path):
     assert read_history(tmp_path / "missing.jsonl") == []
 
 
+def test_append_event_caps_to_history_max(tmp_path, monkeypatch):
+    import bioq.jobs as jobs_mod
+    monkeypatch.setattr(jobs_mod, "_HISTORY_MAX_EVENTS", 3)
+    p = tmp_path / "jobs.jsonl"
+    for i in range(5):
+        record_submit(p, job_id=f"j{i}", svc="s", endpoint="e")
+    assert [e["job_id"] for e in read_history(p, limit=100)] == ["j2", "j3", "j4"]
+
+
+def test_read_history_limit_zero_returns_empty(tmp_path):
+    p = tmp_path / "jobs.jsonl"
+    record_submit(p, job_id="j1", svc="s", endpoint="e")
+    assert read_history(p, limit=0) == []
+    assert len(read_history(p, limit=1)) == 1
+
+
+def test_read_history_skips_non_object_lines(tmp_path):
+    p = tmp_path / "jobs.jsonl"
+    p.write_text('{"type": "submit", "job_id": "ok"}\n123\n[1,2]\n', encoding="utf-8")
+    assert [e["job_id"] for e in read_history(p)] == ["ok"]
+
+
+def test_truncate_structured_values_show_ellipsis():
+    from bioq.jobs import _truncate
+    assert _truncate([1, 2, 3]) == "[1, 2, 3]"
+    assert _truncate({"k": "v" * 300}, limit=10).endswith("…")
+
+
 def test_history_path_uses_state_dir(monkeypatch, tmp_path):
     monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path))
     assert str(history_path()) == str(tmp_path / "bioq" / "jobs.jsonl")

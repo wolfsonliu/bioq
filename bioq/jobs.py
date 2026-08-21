@@ -1,4 +1,4 @@
-"""Poll loop (transient-error tolerant) + local recent-job registry."""
+"""Poll loop (transient-error tolerant) + local job history (JSONL read/write)."""
 from __future__ import annotations
 
 import json
@@ -67,7 +67,8 @@ def _truncate(value, limit: int = 200):
     if isinstance(value, str):
         return value if len(value) <= limit else value[:limit] + "…"
     if isinstance(value, (list, dict)):
-        return repr(value)[:limit]
+        s = repr(value)
+        return s if len(s) <= limit else s[:limit] + "…"
     return value
 
 
@@ -81,8 +82,8 @@ def _append_event(path: Path, event: dict) -> None:
 
 
 def read_history(path: Path, *, limit: int = 20) -> list[dict]:
-    """Return the last ``limit`` events (newest last). Tolerates a missing file or
-    a malformed trailing line (a torn write)."""
+    """Return the last ``limit`` events (newest last); ``limit <= 0`` returns ``[]``.
+    Tolerates a missing file or a malformed/orphaned line."""
     if not path.exists():
         return []
     events = []
@@ -91,10 +92,15 @@ def read_history(path: Path, *, limit: int = 20) -> list[dict]:
         if not raw:
             continue
         try:
-            events.append(json.loads(raw))
+            parsed = json.loads(raw)
         except json.JSONDecodeError:
             continue
-    return events[-limit:] if limit > 0 else events
+        if not isinstance(parsed, dict):
+            continue
+        events.append(parsed)
+    if limit <= 0:
+        return []
+    return events[-limit:]
 
 
 def record_submit(path: Path, *, job_id: str, svc: str, endpoint: str,
