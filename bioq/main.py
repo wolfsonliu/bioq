@@ -3,14 +3,14 @@ from __future__ import annotations
 
 import sys
 
-from . import authcmds, commands
+from . import authcmds, commands, describe
 from .client import GatewayClient
 from .config import load_config
 from .errors import EXIT_INTERRUPT, EXIT_OK, CLIError, ConflictError
 
 _COMMANDS = {
     "services": commands.cmd_services,
-    "describe": commands.cmd_describe,
+    "describe": describe.cmd_describe,
     "run": commands.cmd_run,
     "submit": commands.cmd_submit,
     "status": commands.cmd_status,
