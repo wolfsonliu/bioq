@@ -106,3 +106,15 @@ def test_history_file_is_0600(tmp_path):
     p = tmp_path / "jobs.jsonl"
     record_submit(p, job_id="j1", svc="s", endpoint="e")
     assert (p.stat().st_mode & 0o777) == 0o600
+
+
+def test_history_write_failure_is_nonfatal(tmp_path, monkeypatch, capsys):
+    import pathlib
+
+    def boom(self, *a, **k):
+        raise OSError("disk full")
+
+    monkeypatch.setattr(pathlib.Path, "write_text", boom)
+    p = tmp_path / "jobs.jsonl"
+    record_status(p, job_id="j1", status="completed")  # must not raise
+    assert "could not record job history" in capsys.readouterr().err

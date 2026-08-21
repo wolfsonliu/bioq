@@ -297,3 +297,16 @@ def test_submit_records_history_event(tmp_path, monkeypatch):
     assert events[0]["type"] == "submit"
     assert events[0]["svc"] == "proteinmpnn-server"
     assert events[0]["params"] == {"num_seq_per_target": 2}
+
+
+def test_run_wait_completed_records_status_event(tmp_path, monkeypatch):
+    import json
+    p = tmp_path / "jobs.jsonl"
+    monkeypatch.setattr(commands, "history_path", lambda: p)
+    c = _Client(status="completed")
+    commands.cmd_run(c, _args(wait=True, out=str(tmp_path / "out")))
+    events = [json.loads(ln) for ln in p.read_text().splitlines()]
+    assert events[-1]["type"] == "status"
+    assert events[-1]["status"] == "completed"
+    assert events[-1]["output_dir"] == str(tmp_path / "out")
+    assert events[-1]["files"] == 1

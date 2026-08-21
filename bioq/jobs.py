@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import sys
 import time
 from pathlib import Path
 
@@ -55,12 +56,16 @@ def _truncate(value, limit: int = 200):
 
 
 def _append_event(path: Path, event: dict) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    lines = path.read_text(encoding="utf-8").splitlines() if path.exists() else []
-    lines.append(json.dumps(event, ensure_ascii=False))
-    lines = lines[-_HISTORY_MAX_EVENTS:]
-    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    path.chmod(0o600)
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        lines = path.read_text(encoding="utf-8").splitlines() if path.exists() else []
+        lines.append(json.dumps(event, ensure_ascii=False))
+        lines = lines[-_HISTORY_MAX_EVENTS:]
+        path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        path.chmod(0o600)
+    except OSError as exc:
+        # History is auxiliary: never let a logging failure fail the command.
+        print(f"warning: could not record job history: {exc}", file=sys.stderr)
 
 
 def read_history(path: Path, *, limit: int = 20) -> list[dict]:
