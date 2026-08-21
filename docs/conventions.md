@@ -47,6 +47,12 @@ English | [中文](conventions.zh.md)
   the English `*.md`). *Why: matches the existing codebase and keeps developer-facing
   text consistent.*
 - **No `Co-Authored-By`-style AI co-author trailers** in commits.
+- **`config._current_config` is an intentional ambient accessor.** `load_config`
+  stores the resolved `Config` module-globally so `get_state_dir`/`get_tokens_dir`
+  (and, via them, `jobs.history_path`) don't require threading `Config` through every
+  signature. *Why: bioq is a single-shot CLI; per-invocation global state is safe and
+  simpler. Remove-when: bioq becomes long-lived or concurrent — then replace with
+  explicit passing or `contextvars`.*
 
 ## Skill sync
 

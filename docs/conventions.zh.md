@@ -41,6 +41,10 @@
   用户的文档（`README.md`、`skills/bioq/SKILL.md`）与 `docs/` 下的 `.zh.md` 镜像
   （其权威形式是英文 `*.md`）。*原因：与现有代码库一致，保持开发者向文本统一。*
 - commit 中**不要**加 `Co-Authored-By` 之类的 AI co-author trailer。
+- **`config._current_config` 是有意的环境态访问器。** `load_config` 把解析好的 `Config`
+  存为模块全局，使 `get_state_dir`/`get_tokens_dir`（进而 `jobs.history_path`）无需把
+  `Config` 穿透进每个函数签名。*原因：bioq 是单次启动的 CLI；每次调用级全局态安全且简单。
+  删除条件：bioq 变为长驻或并发——届时改用显式传参或 `contextvars`。*
 
 ## Skill 同步
 

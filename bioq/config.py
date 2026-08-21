@@ -70,7 +70,10 @@ def load_config(*, profile: str | None, gateway_url: str | None,
 # ---------------------------------------------------------------------------
 # Module-level config accessor — lets other modules (jobs.py, tokens.py) pick
 # up the configured state_dir / tokens_dir without threading the Config object
-# through every function signature.
+# through every function signature. This ambient state is INTENTIONAL (documented
+# in docs/conventions.md): bioq is a single-shot CLI, so per-invocation global
+# state is fine. If bioq ever becomes long-lived/concurrent, switch to explicit
+# passing or contextvars, not a module global.
 # ---------------------------------------------------------------------------
 _current_config: Config | None = None
 
