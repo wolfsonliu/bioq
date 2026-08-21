@@ -2,9 +2,9 @@
 
 English | [中文](commands.zh.md)
 
-> **Why (source):** Derived from `bioq/commands.py`, `upload.py`, `params.py`,
-> `jobs.py`, and `output.py`, and verified against `bioq/main.py`. This describes the
-> user-visible CLI behavior.
+> **Why (source):** Derived from `bioq/commands.py`, `describe.py`, `authcmds.py`,
+> `upload.py`, `params.py`, `jobs.py`, and `output.py`, and verified against `bioq/main.py`.
+> This describes the user-visible CLI behavior.
 > **Read when:** changing CLI behavior, adding/renaming a subcommand or flag, or
 > changing upload / param semantics.
 > **Remove/rewrite when:** a command or flag changes — then also sync

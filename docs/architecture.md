@@ -16,7 +16,9 @@ English | [中文](architecture.zh.md)
 bioq/                   package (thin, single layer)
 ├── main.py             argparse (build_parser) + dispatch + exit-code mapping
 ├── client.py           GatewayClient (httpx wrapper over /v1) + _BioqAuth
-├── commands.py         cmd_* handlers + submit/poll/download logic
+├── commands.py         cmd_* handlers (lifecycle) + shared short-name/timeout primitives
+├── describe.py         describe rendering (--file/--set tables + --wait cold-start)
+├── authcmds.py         offline login/logout/config commands (no-client)
 ├── config.py           profiles (~/.config/bioq/config.toml, 0600) + load_config precedence
 ├── auth.py             resolve_bearer (oidc / client_credentials / none)
 ├── oidc.py             OAuth2 primitives: discover / device flow / client-credentials / refresh

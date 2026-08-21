@@ -32,7 +32,7 @@ class Config:
     oidc_issuer: str | None = None
     oidc_client_id: str | None = None
     oidc_client_secret: str | None = None      # client_credentials only (prefer env)
-    state_dir: str | None = None               # where bioq writes jobs.json (default: XDG_STATE_HOME)
+    state_dir: str | None = None               # where bioq writes jobs.jsonl (default: XDG_STATE_HOME)
     tokens_dir: str | None = None              # where bioq writes OIDC tokens (default: XDG_CONFIG_HOME/bioq/tokens)
 
 

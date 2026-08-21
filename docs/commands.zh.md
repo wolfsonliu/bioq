@@ -2,8 +2,8 @@
 
 [English](commands.md) | 中文
 
-> **来源（为何存在）：** 派生自 `bioq/commands.py`、`upload.py`、`params.py`、
-> `jobs.py`、`output.py`，并对 `bioq/main.py` 校验。描述面向用户的 CLI 行为。
+> **来源（为何存在）：** 派生自 `bioq/commands.py`、`describe.py`、`authcmds.py`、
+> `upload.py`、`params.py`、`jobs.py`、`output.py`，并对 `bioq/main.py` 校验。描述面向用户的 CLI 行为。
 > **何时需要读：** 改动 CLI 行为、新增/重命名子命令或 flag，或改变上传/参数语义时。
 > **何时可删除/重写：** 当命令或 flag 变化时——同时同步 `skills/bioq/SKILL.md`
 > 与 `README.md` 的命令表。

@@ -14,7 +14,9 @@
 bioq/                   （thin，单层包）
 ├── main.py             argparse（build_parser）+ 命令分发 + 退出码映射
 ├── client.py           GatewayClient（对 /v1 的 httpx 封装）+ _BioqAuth
-├── commands.py         各 cmd_* 处理器 + 提交/轮询/下载逻辑
+├── commands.py         各 cmd_* 处理器（生命周期）+ 共享短名/超时原语
+├── describe.py         describe 渲染（--file/--set 表格 + --wait 冷启动容错）
+├── authcmds.py         离线 login/logout/config 命令（无网关）
 ├── config.py           profile 配置（~/.config/bioq/config.toml，0600）+ load_config 优先级
 ├── auth.py             resolve_bearer（oidc / client_credentials / none 三种模式）
 ├── oidc.py             OAuth2 原语：discover / device flow / client-credentials / refresh
