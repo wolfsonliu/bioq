@@ -14,10 +14,9 @@ _HISTORY_MAX_EVENTS = 500
 
 
 def poll(client, job_id: str, *, interval: float, timeout: float,
-         max_transient: int = 10, on_update=None) -> dict:
+         max_transient: int = 10) -> dict:
     deadline = time.time() + timeout
     transient = 0
-    last_status = None
     while time.time() < deadline:
         try:
             job = client.get_job(job_id)
@@ -30,9 +29,6 @@ def poll(client, job_id: str, *, interval: float, timeout: float,
         except CLIError:
             raise
         transient = 0
-        if on_update and job.get("status") != last_status:
-            on_update(job)
-            last_status = job.get("status")
         if job.get("status") in TERMINAL:
             return job
         time.sleep(interval)
