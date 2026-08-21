@@ -23,13 +23,15 @@ url = "https://repo.huaweicloud.com/repository/pypi/simple"
 default = true
 
 [tool.hatch.build.targets.wheel]
-packages = ["bioq"]
+packages = ["src/bioq"]
 
 [tool.ruff]
 line-length = 100
 target-version = "py310"
 
 [tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
 markers = [
     "fc: live end-to-end tests against a deployed gateway (opt-in)",
 ]

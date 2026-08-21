@@ -1,6 +1,6 @@
 """Opt-in end-to-end: bioq against a real gateway. Run with:
     RUN_FC_TESTS=1 BIOQ_GATEWAY_URL=... [BIOQ_FC_PDB=<pdb>] \
-        uv run python -m pytest bioq/tests/test_fc.py -v -m fc
+        uv run python -m pytest tests/test_fc.py -v -m fc
 
 Auth: the tests drive the real CLI through main(), which uses the logged-in profile
 (run `bioq login --oidc` / `--client-credentials` first) or `auth_mode = "none"` for

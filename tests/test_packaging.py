@@ -10,4 +10,4 @@ def test_bioq_console_script_registered():
 
 def test_cli_in_wheel_packages():
     data = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
-    assert "bioq" in data["tool"]["hatch"]["build"]["targets"]["wheel"]["packages"]
+    assert "src/bioq" in data["tool"]["hatch"]["build"]["targets"]["wheel"]["packages"]

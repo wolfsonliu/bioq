@@ -2,7 +2,7 @@
 
 [English](exit-codes.md) | 中文
 
-> **来源（为何存在）：** 定义于 `bioq/errors.py`——该文件是权威来源。脚本与 skill
+> **来源（为何存在）：** 定义于 `src/bioq/errors.py`——该文件是权威来源。脚本与 skill
 > 都按这些编号分支，因此它们是**稳定契约**。
 > **何时需要读：** 新增或改变任何错误路径，或决定新失败类型映射到哪个码时。
 > **何时可删除/重写：** 基本不会。重新编号需要协调下游迁移；否则此表永久有效。
@@ -31,13 +31,13 @@
 
 ## 新增失败类型
 
-复用已有的码/类；**不要**重新编号。若确有全新类型，在 `bioq/errors.py` 里新增
+复用已有的码/类；**不要**重新编号。若确有全新类型，在 `src/bioq/errors.py` 里新增
 带新 `EXIT_*` 常量的 `CLIError` 子类，然后更新本表与 `skills/bioq/SKILL.md`。
 
 ## 失败如何呈现
 
 - 普通结果写到 **stdout**；错误写到 **stderr**，形如 `error: <message>`（见
-  `bioq/main.py`）。脚本必须按退出码分支，而不是解析 stderr 文本。
+  `src/bioq/main.py`）。脚本必须按退出码分支，而不是解析 stderr 文本。
 - **5 与 6 的区别：** `5` 表示网关报告了终态失败；`6` 表示网关说 `completed`
   但没有产出 `results.zip`（FC 状态遮蔽——见 `docs/commands.md`）。
 
@@ -49,6 +49,6 @@
 
 ## 另见
 
-- `bioq/errors.py` —— 权威定义。
+- `src/bioq/errors.py` —— 权威定义。
 - `docs/commands.md` —— `5` 与 `6` 的抛出位置。
 - `skills/bioq/SKILL.md` —— 使用方 agent 应对各码采取什么动作。

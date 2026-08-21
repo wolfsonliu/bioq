@@ -179,7 +179,7 @@ Notes:
 uv run python -m pytest -q               # offline unit tests
 # contract smoke (needs a reachable gateway):
 BIOQ_E2E_GATEWAY_URL=https://<gateway> \
-    uv run python -m pytest bioq/tests/test_contract.py -v
+    uv run python -m pytest tests/test_contract.py -v
 # full live e2e (submits real jobs):
 RUN_FC_TESTS=1 BIOQ_GATEWAY_URL=https://<gateway> \
     uv run python -m pytest -m fc -v

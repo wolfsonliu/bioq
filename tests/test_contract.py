@@ -8,7 +8,7 @@ Auth comes from the logged-in profile (run `bioq login --oidc` or
 localhost / VPC-bypass gateway.
 
     BIOQ_E2E_GATEWAY_URL=https://<gateway> \
-        uv run python -m pytest bioq/tests/test_contract.py -v
+        uv run python -m pytest tests/test_contract.py -v
 """
 from __future__ import annotations
 

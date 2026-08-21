@@ -2,18 +2,18 @@
 
 English | [中文](architecture.zh.md)
 
-> **Why (source):** These facts are read directly from `bioq/*.py` (primarily
-> `bioq/main.py`). They are captured here so a change doesn't require reading every
+> **Why (source):** These facts are read directly from `src/bioq/*.py` (primarily
+> `src/bioq/main.py`). They are captured here so a change doesn't require reading every
 > module first — only the ones you actually touch.
 > **Read when:** before your first code change in this repo, to orient in the layout
 > and the run-data flow.
 > **Remove/rewrite when:** a module is renamed/added/removed, or the flow in
-> `main.main()` changes; keep this in sync with `bioq/main.py`.
+> `main.main()` changes; keep this in sync with `src/bioq/main.py`.
 
 ## Layout
 
 ```
-bioq/                   package (thin, single layer)
+src/bioq/               package (thin, single layer)
 ├── main.py             argparse (build_parser) + dispatch + exit-code mapping
 ├── client.py           GatewayClient (httpx wrapper over /v1) + _BioqAuth
 ├── commands.py         cmd_* handlers (lifecycle) + shared short-name/timeout primitives
@@ -28,13 +28,13 @@ bioq/                   package (thin, single layer)
 ├── upload.py           --file → sha256 → prepare_upload → PUT → {field}_uri
 ├── errors.py           exit-code taxonomy + CLIError hierarchy
 └── output.py           emit (pretty human / json machine)
-bioq/tests/             offline unit tests + opt-in live/contract tests
+tests/                  offline unit tests + opt-in live/contract tests
 skills/bioq/SKILL.md    agent-neutral skill for *using* bioq (not developing it)
 examples/               runnable bash samples
 pyproject.toml          packaging (hatchling) + ruff + pytest marker config
 ```
 
-## Run flow (`bioq/main.py`)
+## Run flow (`src/bioq/main.py`)
 
 1. `build_parser()` assembles argparse. Global flags (`--gateway-url` / `--profile` /
    `--output`) live on a **shared parent parser applied to the top level and every
@@ -57,7 +57,7 @@ docs — not duplicated here.
 ## I/O contract
 
 Normal results go to **stdout**; a user-facing error goes to **stderr** as
-`error: <message>` (see `bioq/main.py`). Scripts branch on the process exit code, not
+`error: <message>` (see `src/bioq/main.py`). Scripts branch on the process exit code, not
 on stderr text (see `docs/exit-codes.md`).
 
 ## Related docs

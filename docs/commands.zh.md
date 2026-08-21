@@ -2,8 +2,8 @@
 
 [English](commands.md) | 中文
 
-> **来源（为何存在）：** 派生自 `bioq/commands.py`、`describe.py`、`authcmds.py`、
-> `upload.py`、`params.py`、`jobs.py`、`output.py`，并对 `bioq/main.py` 校验。描述面向用户的 CLI 行为。
+> **来源（为何存在）：** 派生自 `src/bioq/commands.py`、`describe.py`、`authcmds.py`、
+> `upload.py`、`params.py`、`jobs.py`、`output.py`，并对 `src/bioq/main.py` 校验。描述面向用户的 CLI 行为。
 > **何时需要读：** 改动 CLI 行为、新增/重命名子命令或 flag，或改变上传/参数语义时。
 > **何时可删除/重写：** 当命令或 flag 变化时——同时同步 `skills/bioq/SKILL.md`
 > 与 `README.md` 的命令表。
@@ -61,7 +61,7 @@
   尚未终态时才轮询。
 - 常量：`POLL_INTERVAL_S = 10.0`；`TERMINAL = {"completed","failed","cancelled"}`。
 
-## 上传（`bioq/upload.py`）
+## 上传（`src/bioq/upload.py`）
 
 `--file <field>=<path>`：sha256 → `prepare_upload(job_id, filename, sha256)` → 缓存命中
 （`exists`）免传 → 否则 PUT 字节 → 收集 `pre["uri"]`。
@@ -71,13 +71,13 @@
 - 同一 `field` 重复 → 折叠成 list；body 键是 `{field}_uri`，且 `<field>` 必须匹配
   下游服务的 `<field>_uri` 表单字段。
 
-## 参数（`bioq/params.py`）
+## 参数（`src/bioq/params.py`）
 
 `build_body`：`--set k=v` 做轻量类型推断（`true/false`→bool、可转 int→int、
 可转 float→float、否则 str）；`--set-json k=<json>|@file.json` 执行 `json.loads`
 （`@` 前缀读文件）；最后 `body.update(file_uris)` 用 `{field}_uri` 覆盖。
 
-## 输出（`bioq/output.py`）
+## 输出（`src/bioq/output.py`）
 
 `emit`：`--output json` 打印 JSON（机读；用 `jq` 解析）；`pretty` 是人读视图。
 脚本与 LLM agent 一律用 `json`。

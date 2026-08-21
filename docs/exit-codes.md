@@ -2,7 +2,7 @@
 
 English | [中文](exit-codes.zh.md)
 
-> **Why (source):** Defined in `bioq/errors.py` — that file is the canonical source.
+> **Why (source):** Defined in `src/bioq/errors.py` — that file is the canonical source.
 > Scripts and the skill branch on these numbers, so they are a **stable contract**.
 > **Read when:** adding or changing any error path, or deciding which code a new
 > failure maps to.
@@ -35,13 +35,13 @@ English | [中文](exit-codes.zh.md)
 ## Adding a failure mode
 
 Reuse an existing code/class; do **not** renumber. If genuinely novel, add a
-`CLIError` subclass with a new `EXIT_*` constant in `bioq/errors.py`, then update this
+`CLIError` subclass with a new `EXIT_*` constant in `src/bioq/errors.py`, then update this
 table and `skills/bioq/SKILL.md`.
 
 ## How failures surface
 
 - Normal results go to **stdout**; errors go to **stderr** as `error: <message>` (see
-  `bioq/main.py`). Scripts must branch on the exit code, not on stderr text.
+  `src/bioq/main.py`). Scripts must branch on the exit code, not on stderr text.
 - **5 vs 6:** `5` means the gateway reported a terminal failure; `6` means the gateway
   said `completed` but produced no `results.zip` (FC-status masking — see
   `docs/commands.md`).
@@ -54,6 +54,6 @@ Prefer these named constants over literal integers: `EXIT_OK`, `EXIT_USAGE`,
 
 ## See also
 
-- `bioq/errors.py` — canonical definitions.
+- `src/bioq/errors.py` — canonical definitions.
 - `docs/commands.md` — where `5` and `6` are raised.
 - `skills/bioq/SKILL.md` — how a using-agent should act on each code.

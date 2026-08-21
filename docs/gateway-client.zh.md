@@ -2,13 +2,13 @@
 
 [English](gateway-client.md) | 中文
 
-> **来源（为何存在）：** 派生自 `bioq/client.py`、`auth.py`、`oidc.py`、
+> **来源（为何存在）：** 派生自 `src/bioq/client.py`、`auth.py`、`oidc.py`、
 > `config.py`、`tokens.py`——这些文件是唯一权威来源，请与本文档对照阅读。
 > **何时需要读：** 触及网络、状态码处理、认证/登录、OIDC、配置优先级或 token 缓存时。
 > **何时可删除/重写：** 当 `/v1` 端点、状态码映射或认证模式变化时；
 > 任何此类改动都要同步 `skills/bioq/SKILL.md`。
 
-## GatewayClient（`bioq/client.py`）
+## GatewayClient（`src/bioq/client.py`）
 
 对网关 `/v1/*` 的最薄 httpx 封装；把 HTTP 状态码映射为 `CLIError` 子类。
 
@@ -34,7 +34,7 @@
 `auth_mode == "oidc"`，则调用 `tokens.mark_expired` + 刷新并重试一次——容忍时钟偏差
 与服务端撤销 token。
 
-## 认证模式（`resolve_bearer`，`bioq/auth.py`）
+## 认证模式（`resolve_bearer`，`src/bioq/auth.py`）
 
 JWT-only，三种模式。`resolve_bearer` 仅在 `none` 模式下返回 `None`。
 
@@ -44,7 +44,7 @@ JWT-only，三种模式。`resolve_bearer` 仅在 `none` 模式下返回 `None`�
 | `client_credentials` | 每次请求现换 token（机器/CI；需 issuer + client_id + secret）。 |
 | `none` | 不发 Authorization 头 → 依赖网关 VPC bypass（localhost / 内网）。 |
 
-### OIDC 原语（`bioq/oidc.py`）
+### OIDC 原语（`src/bioq/oidc.py`）
 
 - `discover` → `/.well-known/openid-configuration`。
 - `start_device` → scope `"openid profile offline_access"`。**不要加 `groups`
@@ -55,7 +55,7 @@ JWT-only，三种模式。`resolve_bearer` 仅在 `none` 模式下返回 `None`�
 - `client_credentials` → scope `"openid"`。
 - `refresh` → `grant_type=refresh_token`。
 
-## 配置（`bioq/config.py`）与 token（`bioq/tokens.py`）
+## 配置（`src/bioq/config.py`）与 token（`src/bioq/tokens.py`）
 
 - 配置文件：`~/.config/bioq/config.toml`（`XDG_CONFIG_HOME` 感知），写入 `0600`。
 - `Config` 字段：`gateway_url`、`profile`、`auth_mode`（`none|oidc|client_credentials`）、

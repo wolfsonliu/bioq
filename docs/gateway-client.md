@@ -2,7 +2,7 @@
 
 English | [中文](gateway-client.zh.md)
 
-> **Why (source):** Derived from `bioq/client.py`, `auth.py`, `oidc.py`, `config.py`,
+> **Why (source):** Derived from `src/bioq/client.py`, `auth.py`, `oidc.py`, `config.py`,
 > and `tokens.py` — those files are the single source of truth; read them alongside
 > this doc.
 > **Read when:** you touch networking, status-code handling, auth/login, OIDC, config
@@ -10,7 +10,7 @@ English | [中文](gateway-client.zh.md)
 > **Remove/rewrite when:** a `/v1` endpoint, a status mapping, or an auth mode changes;
 > mirror any such change in `skills/bioq/SKILL.md`.
 
-## GatewayClient (`bioq/client.py`)
+## GatewayClient (`src/bioq/client.py`)
 
 The thinnest possible httpx wrapper over the gateway `/v1/*`; maps HTTP status →
 `CLIError` subclasses.
@@ -37,7 +37,7 @@ Calls `resolve_bearer` on **every** request to attach `Authorization: Bearer`. I
 response is 401 and `auth_mode == "oidc"`, it calls `tokens.mark_expired` + refresh and
 retries once — tolerates clock skew and server-side token revocation.
 
-## Auth modes (`resolve_bearer`, `bioq/auth.py`)
+## Auth modes (`resolve_bearer`, `src/bioq/auth.py`)
 
 JWT-only, three modes. `resolve_bearer` returns `None` only in `none` mode.
 
@@ -47,7 +47,7 @@ JWT-only, three modes. `resolve_bearer` returns `None` only in `none` mode.
 | `client_credentials` | mint a fresh token per request (machine/CI; needs issuer + client_id + secret). |
 | `none` | no Authorization header → relies on the gateway VPC bypass (localhost / internal). |
 
-### OIDC primitives (`bioq/oidc.py`)
+### OIDC primitives (`src/bioq/oidc.py`)
 
 - `discover` → `/.well-known/openid-configuration`.
 - `start_device` → scope `"openid profile offline_access"`. **Do NOT add a `groups`
@@ -58,7 +58,7 @@ JWT-only, three modes. `resolve_bearer` returns `None` only in `none` mode.
 - `client_credentials` → scope `"openid"`.
 - `refresh` → `grant_type=refresh_token`.
 
-## Config (`bioq/config.py`) & tokens (`bioq/tokens.py`)
+## Config (`src/bioq/config.py`) & tokens (`src/bioq/tokens.py`)
 
 - Config file: `~/.config/bioq/config.toml` (`XDG_CONFIG_HOME`-aware), written `0600`.
 - `Config` fields: `gateway_url`, `profile`, `auth_mode` (`none|oidc|client_credentials`),

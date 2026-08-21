@@ -2,8 +2,8 @@
 
 English | [中文](commands.zh.md)
 
-> **Why (source):** Derived from `bioq/commands.py`, `describe.py`, `authcmds.py`,
-> `upload.py`, `params.py`, `jobs.py`, and `output.py`, and verified against `bioq/main.py`.
+> **Why (source):** Derived from `src/bioq/commands.py`, `describe.py`, `authcmds.py`,
+> `upload.py`, `params.py`, `jobs.py`, and `output.py`, and verified against `src/bioq/main.py`.
 > This describes the user-visible CLI behavior.
 > **Read when:** changing CLI behavior, adding/renaming a subcommand or flag, or
 > changing upload / param semantics.
@@ -70,7 +70,7 @@ strip/append logic lives **only** in `commands._canonical_svc` — don't duplica
   `BIOQ_POLL_TIMEOUT`) is present and the job isn't already terminal.
 - Constants: `POLL_INTERVAL_S = 10.0`; `TERMINAL = {"completed","failed","cancelled"}`.
 
-## Uploads (`bioq/upload.py`)
+## Uploads (`src/bioq/upload.py`)
 
 `--file <field>=<path>`: sha256 → `prepare_upload(job_id, filename, sha256)` → cache
 hit (`exists`) skips transfer → else PUT the bytes → collect `pre["uri"]`.
@@ -81,13 +81,13 @@ hit (`exists`) skips transfer → else PUT the bytes → collect `pre["uri"]`.
 - Same `field` repeated → collapse to a list; the body key is `{field}_uri`, and
   `<field>` must match the downstream service's `<field>_uri` form field.
 
-## Params (`bioq/params.py`)
+## Params (`src/bioq/params.py`)
 
 `build_body`: `--set k=v` does light type inference (`true/false`→bool, int-able→int,
 float-able→float, else str); `--set-json k=<json>|@file.json` runs `json.loads`
 (`@` prefix reads a file); finally `body.update(file_uris)` overrides with `{field}_uri`.
 
-## Output (`bioq/output.py`)
+## Output (`src/bioq/output.py`)
 
 `emit`: `--output json` prints JSON (machine; parse with `jq`); `pretty` is the human
 view. Scripts and LLM agents always use `json`.

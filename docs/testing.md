@@ -2,7 +2,7 @@
 
 English | [中文](testing.zh.md)
 
-> **Why (source):** Test layout and gating live in `bioq/tests/`; markers live in
+> **Why (source):** Test layout and gating live in `tests/`; markers live in
 > `pyproject.toml`. Verified against `README.md`'s commands.
 > **Read when:** running, writing, or debugging tests.
 > **Remove/rewrite when:** the pytest markers or the test-file inventory change.
@@ -13,13 +13,13 @@ English | [中文](testing.zh.md)
 uv run python -m pytest -q                         # offline unit tests (default)
 # contract smoke (needs a reachable gateway; gated by BIOQ_E2E_GATEWAY_URL):
 BIOQ_E2E_GATEWAY_URL=https://<gateway> \
-    uv run python -m pytest bioq/tests/test_contract.py -v
+    uv run python -m pytest tests/test_contract.py -v
 # full live e2e (submits real jobs; opt-in):
 RUN_FC_TESTS=1 BIOQ_GATEWAY_URL=https://<gateway> \
     uv run python -m pytest -m fc -v
 ```
 
-## Layers (all under `bioq/tests/`)
+## Layers (all under `tests/`)
 
 - **Offline unit tests:** `test_main` (argparse/dispatch), `test_client` (status
   mapping + retry), `test_commands` (runner logic), and
@@ -46,7 +46,7 @@ uv run ruff check .   # lint (line-length=100, target-version=py310)
 ## Running subsets
 
 ```bash
-uv run python -m pytest bioq/tests/test_client.py -q   # a single file
+uv run python -m pytest tests/test_client.py -q   # a single file
 uv run python -m pytest -m 'not fc' -q                # everything except live e2e
 ```
 
@@ -55,5 +55,5 @@ plain `-q` run skips them.
 
 ## See also
 
-- `bioq/tests/` — the test sources themselves (skipif/docstring gating lives there).
+- `tests/` — the test sources themselves (skipif/docstring gating lives there).
 - `docs/exit-codes.md` — codes the tests assert against.

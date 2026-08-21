@@ -162,7 +162,7 @@ skills/bioq/SKILL.md
 uv run python -m pytest -q               # 离线单测
 # 契约冒烟（需可达 gateway）：
 BIOQ_E2E_GATEWAY_URL=https://<gateway> \
-    uv run python -m pytest bioq/tests/test_contract.py -v
+    uv run python -m pytest tests/test_contract.py -v
 # 完整 live e2e（提交真实任务）：
 RUN_FC_TESTS=1 BIOQ_GATEWAY_URL=https://<gateway> \
     uv run python -m pytest -m fc -v

@@ -2,7 +2,7 @@
 
 [English](testing.md) | 中文
 
-> **来源（为何存在）：** 测试布局与门控在 `bioq/tests/`；marker 在 `pyproject.toml`。
+> **来源（为何存在）：** 测试布局与门控在 `tests/`；marker 在 `pyproject.toml`。
 > 已与 `README.md` 的命令核对。
 > **何时需要读：** 运行、编写或调试测试时。
 > **何时可删除/重写：** pytest marker 或测试文件清单变化时。
@@ -13,13 +13,13 @@
 uv run python -m pytest -q                         # 离线单测（默认）
 # 契约冒烟（需可达网关；由 BIOQ_E2E_GATEWAY_URL 门控）：
 BIOQ_E2E_GATEWAY_URL=https://<gateway> \
-    uv run python -m pytest bioq/tests/test_contract.py -v
+    uv run python -m pytest tests/test_contract.py -v
 # 完整 live e2e（提交真实任务；opt-in）：
 RUN_FC_TESTS=1 BIOQ_GATEWAY_URL=https://<gateway> \
     uv run python -m pytest -m fc -v
 ```
 
-## 分层（均在 `bioq/tests/` 下）
+## 分层（均在 `tests/` 下）
 
 - **离线单测：** `test_main`（argparse/分发）、`test_client`（状态码映射 + 重试）、
   `test_commands`（runner 逻辑），以及 `test_config` / `test_tokens` / `test_auth` /
@@ -45,7 +45,7 @@ uv run ruff check .   # lint（line-length=100、target-version=py310）
 ## 运行子集
 
 ```bash
-uv run python -m pytest bioq/tests/test_client.py -q   # 单个文件
+uv run python -m pytest tests/test_client.py -q   # 单个文件
 uv run python -m pytest -m 'not fc' -q                # 排除 live e2e 的全部测试
 ```
 
@@ -53,5 +53,5 @@ live `fc` 测试由 env 驱动的 `skipif` 门控，并用 `-m fc` 选中；普�
 
 ## 另见
 
-- `bioq/tests/` —— 测试源码本身（skipif/docstring 门控在那里）。
+- `tests/` —— 测试源码本身（skipif/docstring 门控在那里）。
 - `docs/exit-codes.md` —— 测试所断言的退出码。
