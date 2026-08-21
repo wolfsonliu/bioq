@@ -41,8 +41,9 @@ pyproject.toml          packaging (hatchling) + ruff + pytest marker config
    subparser**, so position doesn't matter (`bioq --output json run ...` ≡
    `bioq run ... --output json`). `default=SUPPRESS` keeps the subparser copy from
    clobbering an already-parsed value; `main()` backfills the real defaults.
-2. **No-client commands** (`login` / `logout` / `config`) never connect to the gateway
-   and must run **before** `load_config` (login creates the config). See `_NO_CLIENT`.
+2. **No-client commands** (`login` / `logout` / `config` / `recent`) never connect to the
+   gateway and must run **before** `load_config` (login creates the config; `recent`
+   reads only the local `jobs.jsonl`). See `_NO_CLIENT`.
 3. Everything else: `load_config(profile, gateway_url)` → `GatewayClient.from_url(url,
    cfg)` → dispatch to `_COMMANDS[cmd](client, args)` → map exceptions to exit codes.
 4. Exception → exit code: `ConflictError` is caught **before** `CLIError`; for **only**

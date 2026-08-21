@@ -38,8 +38,8 @@ pyproject.toml          打包（hatchling）+ ruff + pytest marker 配置
    `--output`）挂在**同时作用于顶层和每个 subparser 的共享 parent parser**上，
    因此位置随意（`bioq --output json run ...` ≡ `bioq run ... --output json`）。
    用 `default=SUPPRESS` 防止 subparser 副本覆盖已解析的值；`main()` 再回填真正默认值。
-2. **no-client 命令**（`login` / `logout` / `config`）不连网关，且**必须**在
-   `load_config` 之前执行（login 是创建 config 的）。见 `_NO_CLIENT`。
+2. **no-client 命令**（`login` / `logout` / `config` / `recent`）不连网关，且**必须**在
+   `load_config` 之前执行（login 是创建 config 的；`recent` 只读本地 `jobs.jsonl`）。见 `_NO_CLIENT`。
 3. 其余命令：`load_config(profile, gateway_url)` → `GatewayClient.from_url(url, cfg)`
    → 派发到 `_COMMANDS[cmd](client, args)` → 异常映射到退出码。
 4. 异常 → 退出码：`ConflictError` **先于** `CLIError` 被捕获；**仅**对 `run`/`submit`
