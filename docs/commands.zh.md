@@ -46,7 +46,8 @@
 `_build_and_submit`：canonicalize svc → `uuid.uuid4().hex[:20]` job_id → `upload_files`
 → `build_body` → `client.run` → `record_submit`（本地历史）。到终态后，
 `cmd_run`/`cmd_status`/`cmd_download` 会向同一份 `jobs.jsonl` 追加一条 `record_status`
-事件。`bioq recent`（离线）读回这些记录。
+事件。`bioq recent`（离线）读回这些记录（它读取默认的 `XDG_STATE_HOME`/
+`~/.local/state` 文件，**不会**使用 profile 自定义的 `state_dir`）。
 
 - `cmd_run --wait`：轮询到终态 → 非 `completed` 抛 `JobFailedError`（exit 5）→
   否则下载解压；**空 `results.zip` 抛 `NoOutputError`（exit 6）**。

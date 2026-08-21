@@ -52,7 +52,9 @@ strip/append logic lives **only** in `commands._canonical_svc` — don't duplica
 `_build_and_submit`: canonicalize svc → `uuid.uuid4().hex[:20]` job_id → `upload_files`
 → `build_body` → `client.run` → `record_submit` (local history). On terminal status,
 `cmd_run`/`cmd_status`/`cmd_download` append a `record_status` event to the same
-`jobs.jsonl`. `bioq recent` reads it back (offline).
+`jobs.jsonl`. `bioq recent` reads it back (offline; it reads the default
+`XDG_STATE_HOME`/`~/.local/state` file and does **not** honor a profile's custom
+`state_dir`).
 
 - `cmd_run --wait`: poll to terminal → non-`completed` raises `JobFailedError`
   (exit 5) → otherwise download + extract; **empty `results.zip` raises

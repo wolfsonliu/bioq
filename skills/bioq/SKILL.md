@@ -138,6 +138,8 @@ bioq cancel "$JOB"                            # best-effort
 
 Scripting: always pass `--output json` and parse with `jq`.
 
+Forgot a `job_id`? `bioq recent` lists your local submit/status history.
+
 ## Step 4 — Interpret the result (critical)
 
 `status=completed` does **not** guarantee output — FC async marks a container
