@@ -349,3 +349,15 @@ def test_validate_job_id_accepts_hex_rejects_traversal():
         commands._validate_job_id("a/b")
     with pytest.raises(UsageError):
         commands._validate_job_id("")
+
+
+def test_resolve_timeout_precedence_and_validation(monkeypatch):
+    from bioq.errors import UsageError
+    monkeypatch.setenv("BIOQ_X", "42")
+    assert commands._resolve_timeout(_args(timeout=7.5),
+                                     env_var="BIOQ_X", default=1.0) == 7.5
+    assert commands._resolve_timeout(_args(), env_var="BIOQ_X", default=1.0) == 42.0
+    monkeypatch.delenv("BIOQ_X", raising=False)
+    assert commands._resolve_timeout(_args(), env_var="BIOQ_X", default=1.0) == 1.0
+    with pytest.raises(UsageError):
+        commands._resolve_timeout(_args(timeout=0), env_var="BIOQ_X", default=1.0)

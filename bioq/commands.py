@@ -7,7 +7,7 @@ import uuid
 import zipfile
 from pathlib import Path
 
-from .errors import JobFailedError, NoOutputError
+from .errors import JobFailedError, NoOutputError, UsageError
 from .jobs import (TERMINAL, history_path, poll, read_history,
                    record_status, record_submit)
 from .output import emit
@@ -143,19 +143,22 @@ def _print_describe_cli(info: dict, *, svc_short: str, only: str | None = None) 
         print("      " + " ".join(example))
 
 
-def _describe_timeout(args) -> float:
-    """Resolve describe --wait deadline: --timeout > BIOQ_DESCRIBE_TIMEOUT env >
-    DESCRIBE_WAIT_TIMEOUT_S default."""
+def _resolve_timeout(args, *, env_var: str, default: float) -> float:
+    """Resolve a poll/wait deadline: CLI --timeout > ``env_var`` env > default."""
     t = getattr(args, "timeout", None)
     if t is not None:
         if t <= 0:
-            from .errors import UsageError
             raise UsageError("--timeout must be > 0")
         return t
-    env = os.environ.get("BIOQ_DESCRIBE_TIMEOUT")
+    env = os.environ.get(env_var)
     if env:
         return float(env)
-    return DESCRIBE_WAIT_TIMEOUT_S
+    return default
+
+
+def _describe_timeout(args) -> float:
+    return _resolve_timeout(args, env_var="BIOQ_DESCRIBE_TIMEOUT",
+                            default=DESCRIBE_WAIT_TIMEOUT_S)
 
 
 def _describe_wait(client, svc: str, *, timeout: float,
@@ -217,17 +220,7 @@ def _extract_download(client, job_id: str, out_dir: Path) -> int:
 
 
 def _poll_timeout(args) -> float:
-    """Resolve poll timeout: CLI --timeout > BIOQ_POLL_TIMEOUT env > default."""
-    t = getattr(args, "timeout", None)
-    if t is not None:
-        if t <= 0:
-            from .errors import UsageError
-            raise UsageError("--timeout must be > 0")
-        return t
-    env = os.environ.get("BIOQ_POLL_TIMEOUT")
-    if env:
-        return float(env)
-    return POLL_TIMEOUT_S
+    return _resolve_timeout(args, env_var="BIOQ_POLL_TIMEOUT", default=POLL_TIMEOUT_S)
 
 
 def cmd_run(client, args) -> int:
