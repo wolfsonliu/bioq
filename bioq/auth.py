@@ -7,10 +7,11 @@
 from __future__ import annotations
 
 from . import oidc, tokens
+from .config import Config
 from .errors import AuthError
 
 
-def resolve_bearer(cfg) -> str | None:
+def resolve_bearer(cfg: Config) -> str | None:
     profile = cfg.profile or "default"
 
     if cfg.auth_mode == "client_credentials":

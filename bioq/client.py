@@ -11,6 +11,7 @@ import httpx
 
 from . import tokens
 from .auth import resolve_bearer
+from .config import Config
 from .errors import AuthError, ConflictError, GatewayError, NotFoundError
 
 JOB_ID_HEADER = "X-Bioagent-Job-Id"
@@ -50,7 +51,7 @@ class _BioqAuth(httpx.Auth):
 
     requires_response_body = False  # we only read status_code
 
-    def __init__(self, cfg) -> None:
+    def __init__(self, cfg: Config) -> None:
         self._cfg = cfg
 
     def auth_flow(self, request: httpx.Request) -> httpx.Request:
@@ -73,7 +74,7 @@ class GatewayClient:
         self._http = http
 
     @classmethod
-    def from_url(cls, gateway_url: str, cfg,
+    def from_url(cls, gateway_url: str, cfg: Config,
                  timeout: float = 60.0) -> GatewayClient:
         http = httpx.Client(base_url=gateway_url, timeout=timeout,
                             follow_redirects=True, auth=_BioqAuth(cfg))

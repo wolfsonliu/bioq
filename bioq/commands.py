@@ -27,7 +27,6 @@ _JOB_ID_CHARS = frozenset(
 def _validate_job_id(job_id: str) -> str:
     """job_id is normally uuid4().hex[:20]. Accept only that ASCII shape so a
     user-supplied id can't build a `../`-escaping output dir."""
-    from .errors import UsageError
     if not job_id or any(ch not in _JOB_ID_CHARS for ch in job_id):
         raise UsageError(f"invalid job_id {job_id!r}")
     return job_id
