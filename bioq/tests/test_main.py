@@ -88,6 +88,13 @@ def test_409_on_status_is_gateway_error_not_ok(monkeypatch, capsys):
     assert captured.err.startswith("error: conflict")
 
 
+def test_authcmds_exposes_offline_commands():
+    from bioq import authcmds
+    assert callable(authcmds.cmd_login)
+    assert callable(authcmds.cmd_logout)
+    assert callable(authcmds.cmd_config)
+
+
 def _fake_services(monkeypatch):
     monkeypatch.setattr(mainmod, "load_config",
                         lambda **kw: Config(gateway_url="https://gw", profile=None))

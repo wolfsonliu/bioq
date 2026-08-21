@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import sys
 
-from . import commands
+from . import authcmds, commands
 from .client import GatewayClient
 from .config import load_config
 from .errors import EXIT_INTERRUPT, EXIT_OK, CLIError, ConflictError
@@ -21,9 +21,9 @@ _COMMANDS = {
 # Commands that only touch the local config file — no gateway connection, and
 # must run BEFORE load_config (login bootstraps the config).
 _NO_CLIENT = {
-    "login": commands.cmd_login,
-    "logout": commands.cmd_logout,
-    "config": commands.cmd_config,
+    "login": authcmds.cmd_login,
+    "logout": authcmds.cmd_logout,
+    "config": authcmds.cmd_config,
     "recent": commands.cmd_recent,
 }
 
