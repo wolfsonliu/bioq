@@ -24,6 +24,7 @@ _NO_CLIENT = {
     "login": commands.cmd_login,
     "logout": commands.cmd_logout,
     "config": commands.cmd_config,
+    "recent": commands.cmd_recent,
 }
 
 
@@ -98,6 +99,9 @@ def build_parser():
     sub.add_parser("logout", parents=[common])
     cf = sub.add_parser("config", parents=[common])
     cf.add_argument("config_action", nargs="?", choices=["show", "path"], default="show")
+    rec = sub.add_parser("recent", parents=[common])
+    rec.add_argument("--limit", type=int, default=20,
+                     help="show the last N history events (default: 20)")
     return p
 
 

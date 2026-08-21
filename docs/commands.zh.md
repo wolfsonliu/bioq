@@ -19,6 +19,7 @@
 | `bioq status <job_id> [--timeout <s>]` | 查询状态（给定超时则轮询到终态） |
 | `bioq download <job_id> -o <dir>` | 下载并解压结果 zip |
 | `bioq cancel <job_id>` | best-effort 取消 |
+| `bioq recent [--limit N]` | 列出本地作业历史（submit/status 事件） |
 | `bioq login` / `logout` / `config` | 本地凭据管理（不连网关） |
 
 ## 服务名
@@ -43,7 +44,9 @@
 ## run / submit
 
 `_build_and_submit`：canonicalize svc → `uuid.uuid4().hex[:20]` job_id → `upload_files`
-→ `build_body` → `client.run` → `record_job`（本地注册表）。
+→ `build_body` → `client.run` → `record_submit`（本地历史）。到终态后，
+`cmd_run`/`cmd_status`/`cmd_download` 会向同一份 `jobs.jsonl` 追加一条 `record_status`
+事件。`bioq recent`（离线）读回这些记录。
 
 - `cmd_run --wait`：轮询到终态 → 非 `completed` 抛 `JobFailedError`（exit 5）→
   否则下载解压；**空 `results.zip` 抛 `NoOutputError`（exit 6）**。

@@ -64,6 +64,7 @@ bioq logout          # 清除该 profile 的缓存 token
 | `bioq status <job_id>` | 查询任务状态 |
 | `bioq download <job_id> -o <dir>` | 下载结果 zip 并解压 |
 | `bioq cancel <job_id>` | best-effort 取消 |
+| `bioq recent [--limit N]` | 列出本地作业历史（submit/status 事件） |
 | `bioq login` / `logout` / `config` | 本地凭证管理（不连网关） |
 
 ## 示例

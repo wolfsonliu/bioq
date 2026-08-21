@@ -310,3 +310,18 @@ def test_run_wait_completed_records_status_event(tmp_path, monkeypatch):
     assert events[-1]["status"] == "completed"
     assert events[-1]["output_dir"] == str(tmp_path / "out")
     assert events[-1]["files"] == 1
+
+
+def test_cmd_recent_pretty_and_json(tmp_path, monkeypatch, capsys):
+    import json
+    p = tmp_path / "jobs.jsonl"
+    monkeypatch.setattr(commands, "history_path", lambda: p)
+    commands.cmd_submit(_Client(), _args(set=["n=1"]))
+    # pretty
+    commands.cmd_recent(_args(output="pretty"))
+    out = capsys.readouterr().out
+    assert "submit" in out and "proteinmpnn-server" in out
+    # json
+    commands.cmd_recent(_args(output="json"))
+    events = json.loads(capsys.readouterr().out)
+    assert isinstance(events, list) and events[0]["type"] == "submit"

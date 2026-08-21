@@ -68,6 +68,7 @@ sections in the config and select one with `--profile <name>`.
 | `bioq status <job_id>` | query job status |
 | `bioq download <job_id> -o <dir>` | download + extract the results zip |
 | `bioq cancel <job_id>` | best-effort cancel |
+| `bioq recent [--limit N]` | list local job history (submit/status events) |
 | `bioq login` / `logout` / `config` | local credential management (offline) |
 
 ## Examples

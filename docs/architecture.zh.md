@@ -19,7 +19,7 @@ bioq/                   （thin，单层包）
 ├── auth.py             resolve_bearer（oidc / client_credentials / none 三种模式）
 ├── oidc.py             OAuth2 原语：discover / device flow / client-credentials / refresh
 ├── tokens.py           OIDC token 缓存（~/.config/bioq/tokens/<profile>.json，0600）
-├── jobs.py             轮询循环（容忍瞬时错误）+ 本地 recent-job 注册表
+├── jobs.py             轮询循环（容忍瞬时错误）+ 本地作业历史（JSONL）+ recent
 ├── params.py           build_body（--set / --set-json / 文件 uri）
 ├── upload.py           --file → sha256 → prepare_upload → PUT → {field}_uri
 ├── errors.py           退出码 taxonomy + CLIError 异常层级

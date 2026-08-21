@@ -8,7 +8,8 @@ import zipfile
 from pathlib import Path
 
 from .errors import JobFailedError, NoOutputError
-from .jobs import TERMINAL, history_path, poll, record_status, record_submit
+from .jobs import (TERMINAL, history_path, poll, read_history,
+                   record_status, record_submit)
 from .output import emit
 from .params import build_body
 from .upload import upload_files
@@ -248,6 +249,32 @@ def cmd_download(client, args) -> int:
 def cmd_cancel(client, args) -> int:
     emit(client.cancel(args.job_id), fmt=args.output)
     return 0
+
+
+def cmd_recent(args) -> int:
+    """List the local job history (offline — reads only jobs.jsonl)."""
+    events = read_history(history_path(), limit=getattr(args, "limit", 20))
+    if args.output == "json":
+        emit(events, fmt="json")
+        return 0
+    if not events:
+        print("no recent jobs yet (submit/run records local history)")
+        return 0
+    for e in events:
+        _print_history_event(e)
+    return 0
+
+
+def _print_history_event(e: dict) -> None:
+    ts = e.get("ts", "")
+    if e.get("type") == "status":
+        n = e.get("files")
+        where = f"  {e.get('output_dir')}" if e.get("output_dir") else ""
+        count = f"  ({n} files)" if n is not None else ""
+        print(f"{ts}  {e.get('job_id')}  {e.get('status')}{where}{count}")
+    else:
+        print(f"{ts}  {e.get('job_id')}  submit  "
+              f"{e.get('svc', '')} {e.get('endpoint', '')}")
 
 
 # --- no-client commands (config file only; never touch the gateway) ---

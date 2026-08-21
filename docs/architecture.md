@@ -21,7 +21,7 @@ bioq/                   package (thin, single layer)
 ├── auth.py             resolve_bearer (oidc / client_credentials / none)
 ├── oidc.py             OAuth2 primitives: discover / device flow / client-credentials / refresh
 ├── tokens.py           OIDC token cache (~/.config/bioq/tokens/<profile>.json, 0600)
-├── jobs.py             poll loop (transient-error tolerant) + local recent-job registry
+├── jobs.py             poll loop (transient-error tolerant) + local job history (JSONL) + recent
 ├── params.py           build_body (--set / --set-json / file uris)
 ├── upload.py           --file → sha256 → prepare_upload → PUT → {field}_uri
 ├── errors.py           exit-code taxonomy + CLIError hierarchy

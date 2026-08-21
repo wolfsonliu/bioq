@@ -135,3 +135,15 @@ def test_login_client_credentials(tmp_path, monkeypatch):
     from bioq.config import load_config
     loaded = load_config(profile=None, gateway_url=None, config_path=cfg)
     assert loaded.auth_mode == "client_credentials" and loaded.oidc_client_id == "cid"
+
+
+def test_parser_recent():
+    ns = mainmod.build_parser().parse_args(["recent", "--limit", "5", "--output", "json"])
+    assert ns.command == "recent"
+    assert ns.limit == 5
+    assert ns.output == "json"
+
+
+def test_recent_is_offline_no_gateway(tmp_path, monkeypatch):
+    monkeypatch.setattr("bioq.commands.history_path", lambda: tmp_path / "jobs.jsonl")
+    assert mainmod.main(["recent"]) == 0

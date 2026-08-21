@@ -21,6 +21,7 @@ English | [中文](commands.zh.md)
 | `bioq status <job_id> [--timeout <s>]` | query status (polls to terminal when a timeout is given) |
 | `bioq download <job_id> -o <dir>` | download + extract results zip |
 | `bioq cancel <job_id>` | best-effort cancel |
+| `bioq recent [--limit N]` | list local job history (submit/status events) |
 | `bioq login` / `logout` / `config` | local credential management (offline) |
 
 ## Service names
@@ -49,7 +50,9 @@ strip/append logic lives **only** in `commands._canonical_svc` — don't duplica
 ## run / submit
 
 `_build_and_submit`: canonicalize svc → `uuid.uuid4().hex[:20]` job_id → `upload_files`
-→ `build_body` → `client.run` → `record_job` (local registry).
+→ `build_body` → `client.run` → `record_submit` (local history). On terminal status,
+`cmd_run`/`cmd_status`/`cmd_download` append a `record_status` event to the same
+`jobs.jsonl`. `bioq recent` reads it back (offline).
 
 - `cmd_run --wait`: poll to terminal → non-`completed` raises `JobFailedError`
   (exit 5) → otherwise download + extract; **empty `results.zip` raises

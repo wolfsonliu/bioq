@@ -171,6 +171,7 @@ success.
 | `bioq status <job_id>` | query job status |
 | `bioq download <job_id> -o <dir>` | download + extract results zip |
 | `bioq cancel <job_id>` | best-effort cancel |
+| `bioq recent [--limit N]` | list local job history (submit/status events) |
 | `bioq login` / `logout` / `config` | local credential management (offline) |
 
 ## Installing this skill elsewhere
