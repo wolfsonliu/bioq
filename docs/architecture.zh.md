@@ -40,9 +40,10 @@ pyproject.toml          打包（hatchling）+ ruff + pytest marker 配置
    `load_config` 之前执行（login 是创建 config 的）。见 `_NO_CLIENT`。
 3. 其余命令：`load_config(profile, gateway_url)` → `GatewayClient.from_url(url, cfg)`
    → 派发到 `_COMMANDS[cmd](client, args)` → 异常映射到退出码。
-4. 异常 → 退出码：`ConflictError` **先于** `CLIError` 被捕获并返回 `EXIT_OK`
-   （job_id 已存在 = 幂等，按“已提交”处理）；`CLIError` → `exc.exit_code`；
-   `KeyboardInterrupt` → `EXIT_INTERRUPT`（130）。
+4. 异常 → 退出码：`ConflictError` **先于** `CLIError` 被捕获；**仅**对 `run`/`submit`
+   返回 `EXIT_OK`（job_id 已存在 = 幂等，按“已提交”处理）；任何其他命令的 409 以及
+   `CLIError` → `exc.exit_code`（`EXIT_GATEWAY`=7）；`KeyboardInterrupt` →
+   `EXIT_INTERRUPT`（130）。
 
 各 handler、client、认证、退出码表的细节放在其余文档中——此处不重复。
 

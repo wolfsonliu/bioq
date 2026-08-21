@@ -43,9 +43,10 @@ pyproject.toml          packaging (hatchling) + ruff + pytest marker config
    and must run **before** `load_config` (login creates the config). See `_NO_CLIENT`.
 3. Everything else: `load_config(profile, gateway_url)` → `GatewayClient.from_url(url,
    cfg)` → dispatch to `_COMMANDS[cmd](client, args)` → map exceptions to exit codes.
-4. Exception → exit code: `ConflictError` is caught **before** `CLIError` and returns
-   `EXIT_OK` (job_id already exists = idempotent, treated as "already submitted");
-   `CLIError` → `exc.exit_code`; `KeyboardInterrupt` → `EXIT_INTERRUPT` (130).
+4. Exception → exit code: `ConflictError` is caught **before** `CLIError`; for **only**
+   `run`/`submit` it returns `EXIT_OK` (job_id already exists = idempotent, treated as
+   "already submitted"); any other command's 409 and `CLIError` → `exc.exit_code`
+   (`EXIT_GATEWAY`=7); `KeyboardInterrupt` → `EXIT_INTERRUPT` (130).
 
 Details of each handler, the client, auth, and the exit-code table live in the sibling
 docs — not duplicated here.

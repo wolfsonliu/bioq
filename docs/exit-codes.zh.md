@@ -17,7 +17,7 @@
 | 4 | 未找到 404（未知服务或任务） | `NotFoundError` |
 | 5 | 任务失败（终态 failed/cancelled） | `JobFailedError` |
 | 6 | 完成但无 results.zip | `NoOutputError` |
-| 7 | 网关 / 派发错误（5xx / 502） | `GatewayError` |
+| 7 | 网关 / 派发错误（5xx / 502，或 `run`/`submit` 之外的 409） | `GatewayError` / `ConflictError` |
 | 130 | Ctrl-C（`KeyboardInterrupt`） | — |
 
 ## 映射规则

@@ -19,7 +19,7 @@ English | [中文](exit-codes.zh.md)
 | 4 | not found 404 (unknown service or job) | `NotFoundError` |
 | 5 | job failed (terminal failed/cancelled) | `JobFailedError` |
 | 6 | completed but no results.zip | `NoOutputError` |
-| 7 | gateway / dispatch error (5xx / 502) | `GatewayError` |
+| 7 | gateway / dispatch error (5xx / 502, or a 409 outside `run`/`submit`) | `GatewayError` / `ConflictError` |
 | 130 | Ctrl-C (`KeyboardInterrupt`) | — |
 
 ## Mapping rules
