@@ -1,6 +1,6 @@
 [project]
 name = "bioq"
-version = "0.0.1"
+version = "0.1.0"
 description = "bioq — thin REST client CLI for the bioagent service gateway"
 requires-python = ">=3.10"
 dependencies = [
