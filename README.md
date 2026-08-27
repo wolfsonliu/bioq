@@ -1,4 +1,4 @@
-# bioq
+# <img src="assets/bioq.svg" alt="bioq logo" width="40"> bioq
 
 English | [中文](README.zh.md)
 
